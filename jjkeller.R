@@ -1,16 +1,19 @@
 library(tidyverse)
 library(janitor)
+library(scales)
 
 source("data/locations.R")
 
-jj.keller <- read.csv("data/jjkeller.csv")
+JjkGraphs <- function(territory) {
 
-jj.keller.loc <- jj.keller %>% 
+df <- read.csv("data/jjkeller.csv") 
+
+df.table <- df %>% 
   left_join(jjkeller.locations, "Assigned.Location") %>% 
-  filter(manager == "TAMPA",
+  filter(manager == territory, 
          DQ.File == "In Compliance" | DQ.File == "Out of Compliance")
 
-a <- jj.keller.loc %>%
+dq <- df.table %>%
   mutate(dq.binary = recode(DQ.File,
                             "In Compliance" = 1,
                             "Out of Compliance" = 0)) %>% 
@@ -19,19 +22,17 @@ a <- jj.keller.loc %>%
             total             = length(dq.binary   ),
             percent.compliant = num.compliant/total*100) 
 
-b <- data.frame("Total:", sum(a$num.compliant), sum(a$total), round(sum(a$num.compliant)/sum(a$total) * 100,2))
+dq.totals <- data.frame("Total:", sum(dq$num.compliant), sum(dq$total), round(sum(dq$num.compliant)/sum(dq$total) * 100,2))
 
-colnames(b) <- colnames(a)
+colnames(dq.totals) <- colnames(dq)
 
 # driver qual table
-rbind(a,b)
+dq.table <- rbind(dq,dq.totals)
 
 
 # DQ pie chart
 
-library(scales)
-
-jj.keller %>% 
+dq.pie <- df %>% 
   filter(DQ.File == "In Compliance" | DQ.File == "Out of Compliance") %>% 
   group_by(DQ.File) %>% 
   summarise (n = n()) %>% 
@@ -62,7 +63,7 @@ jj.keller %>%
 
 # Driver Stats pie chart
 
-jj.keller %>% 
+dq.stats <- df %>% 
   group_by(Status) %>% 
   summarise (n = n()) %>% 
   mutate(freq = round((n / sum(n)) * 100, 2),
@@ -98,3 +99,9 @@ jj.keller %>%
   #geom_text(aes(y = freq/2 + c(0, cumsum(freq)[-length(freq)]), 
   #              label = percent(freq/100)), size=5) +
   guides(fill = guide_legend(override.aes = list(colour=NA)))
+
+return(list(dq.table, dq.pie, dq.stats))
+
+}
+
+JjkGraphs("TAMPA")
