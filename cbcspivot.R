@@ -4,6 +4,7 @@ library(lubridate)
 
 source("data/locations.R")
 
+
 CBCSPivots <- function(territory) {
   df <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>%
     mutate(Coverage = recode(Coverage,
@@ -58,5 +59,6 @@ claim.count <- rbind(claim.count,claim.count.tot)
 return(list(claim.cost, claim.count))  
   
 }
+
 
 CBCSPivots("TAMPA")
