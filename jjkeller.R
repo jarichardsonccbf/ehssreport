@@ -95,13 +95,10 @@ dq.stats <- df %>%
     legend.title = element_blank(),
     axis.text.x = element_blank(),
     legend.background = element_rect(linetype = "solid")) +
-  
-  #geom_text(aes(y = freq/2 + c(0, cumsum(freq)[-length(freq)]), 
-  #              label = percent(freq/100)), size=5) +
   guides(fill = guide_legend(override.aes = list(colour=NA)))
 
 return(list(dq.table, dq.pie, dq.stats))
 
 }
 
-JjkGraphs("TAMPA")
+JjkGraphs("TAMPA")[2]

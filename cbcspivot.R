@@ -31,7 +31,7 @@ claim.cost <- df %>%
   replace(., is.na(.), 0) %>% 
   mutate(Totals = rowSums(.[2:4]))
   
-claim.cost.tot <- data.frame("Total:", sum(claim.cost$AUTO), sum(claim.cost$GL), sum(claim.cost$WC), sum(claim.cost$Totals))
+claim.cost.tot <- data.frame("Total", sum(claim.cost$AUTO), sum(claim.cost$GL), sum(claim.cost$WC), sum(claim.cost$Totals))
   
 colnames(claim.cost.tot) <- colnames(claim.cost)
   
@@ -49,7 +49,7 @@ claim.count <- df %>%
   mutate(Totals = sum(AUTO, GL, WC)) %>% 
   ungroup()
   
-claim.count.tot <- data.frame("Total:", sum(claim.count$AUTO), sum(claim.count$GL), sum(claim.count$WC), sum(claim.count$Totals))
+claim.count.tot <- data.frame("Total", sum(claim.count$AUTO), sum(claim.count$GL), sum(claim.count$WC), sum(claim.count$Totals))
   
 colnames(claim.count.tot) <- colnames(claim.count)
   

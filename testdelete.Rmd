@@ -1,0 +1,32 @@
+---
+title: "Untitled"
+output: html_document
+runtime: shiny
+---
+
+```{r, echo = FALSE, message=FALSE}
+library(ggplot2)
+library(ggvis)
+library(dplyr)
+
+selectInput("category3", "Choose Dataset:", c("mpg", "disp", "qsec"))
+
+# ggplot renders correctly within renderPlot
+renderPlot({
+  print(input$category3)
+  ggplot(mtcars,aes_string(input$category3,"disp"))+geom_point()
+})
+
+# ggvis with dynamically changing columns
+reactive({
+  if (!is.null(input$category3))
+    col <- input$category3
+  else
+    col <- "mpg"
+
+  mtcars %>% ggvis(prop("x", as.name(col)), ~disp)
+
+}) %>% bind_shiny('foo')
+
+ggvisOutput('foo')
+```
