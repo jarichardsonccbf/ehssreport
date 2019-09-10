@@ -76,8 +76,7 @@ ui <- fluidPage(
       # Territory selection ----
       selectInput("test.selection", label = h3("Territory"), 
                   choices = list("TAMPA", "PLACEHOLDER"))
-      
-      # Another territory selection?
+
     ),
     
     # Main panel display. Use tabs, one for each slide ----
