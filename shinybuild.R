@@ -3,6 +3,7 @@ library(tidyverse)
 library(janitor)
 library(scales)
 library(lubridate)
+library(readxl)
 
 
 source("data/locations.R")
@@ -55,29 +56,35 @@ ui <- fluidPage(
     sidebarPanel(
       
       # File 1 upload ----
-      h3("Attach JJ Keller CSV"),  
-      fileInput2("file1", "Load File 1", labelIcon = "folder-open-o", 
+      h3("Attach JJ Keller"),  
+      fileInput2("file1", "File location", labelIcon = "folder-open-o", 
                  accept = c("text/csv",
                             "text/comma-separated-values,text/plain",
                             ".csv"), progress = TRUE),
       
       # File 2 upload ----
-      h3("Attach CBCS Loss Run Report CSV"),
-      fileInput2("file2", "Load File 2", labelIcon = "folder-open-o", 
-                 accept = c("text/csv",
-                            "text/comma-separated-values,text/plain",
-                            ".csv"), progress = TRUE),
+      h3("Attach CBCS Loss Run Report"),
+      fileInput2("file2", "File location", labelIcon = "folder-open-o", 
+                 accept = c(".xlsx"), progress = TRUE),
+      
+      # File 3 upload ----
+      h3("Attach LMS Data Pull"),
+      fileInput2("file3", "File location", labelIcon = "folder-open-o", 
+                 accept = c(".csv"), progress = TRUE),
+      
+      # All territories or not
+      selectInput("allstate", label = h3("Entire territory?"),
+                  choices = list("NO", "YES")),
+      
+      # Territory selection ----
+      selectInput("manager", label = h3("Region"), 
+                  choices = list("TAMPA", "PLACEHOLDER")),
       
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
-                     label = 'Input date range',
-                     start = Sys.Date() - 6, end = Sys.Date()),
-      
-      # Territory selection ----
-      selectInput("test.selection", label = h3("Territory"), 
-                  choices = list("TAMPA", "PLACEHOLDER"))
-      
-      # Another territory selection?
+                     label = h3("Input date range for weekly incident table"),
+                     start = Sys.Date() - 6, end = Sys.Date())
+
     ),
     
     # Main panel display. Use tabs, one for each slide ----
@@ -93,7 +100,9 @@ ui <- fluidPage(
                   tabPanel("Weekly Safety Incidents", tableOutput(outputId = "weekly.cbcs.incidents")),
                   # Costs and Counts tab
                   tabPanel("Claims Costs and Counts", tableOutput(outputId = "cost.pivot"),
-                           tableOutput(outputId = "count.pivot"))
+                           tableOutput(outputId = "count.pivot")),
+                  #LMS tab
+                  tabPanel("LMS", tableOutput(outputId = "lms.pivot"))
       )
       
     )
@@ -187,10 +196,21 @@ server <- function(input, output, session) {
   # driver qualification tables
   jjk.qual.table <- reactive({
     req(input$file1)
+    
+    if(input$allstate == "NO")
+    
     jjk.qual <- read.csv(input$file1$datapath, header = T) %>% 
       left_join(jjkeller.locations, "Assigned.Location") %>% 
-      filter(manager == input$test.selection, 
-             DQ.File == "In Compliance" | DQ.File == "Out of Compliance") %>%
+      filter(manager == input$manager, 
+             DQ.File == "In Compliance" | DQ.File == "Out of Compliance")
+    
+    else
+      
+    jjk.qual <- read.csv(input$file1$datapath, header = T) %>% 
+      left_join(jjkeller.locations, "Assigned.Location") %>% 
+      filter(DQ.File == "In Compliance" | DQ.File == "Out of Compliance")
+    
+    jjk.qual <- jjk.qual %>% 
       mutate(dq.binary = recode(DQ.File,
                                 "In Compliance" = 1,
                                 "Out of Compliance" = 0)) %>% 
@@ -199,7 +219,7 @@ server <- function(input, output, session) {
                 total             = length(dq.binary   ),
                 percent.compliant = num.compliant/total * 100) 
     
-    jjk.qual.totals <- data.frame("Total:", sum(jjk.qual$num.compliant), sum(jjk.qual$total), round(sum(jjk.qual$num.compliant)/sum(jjk.qual$total) * 100,2))
+    jjk.qual.totals <- data.frame("Total", sum(jjk.qual$num.compliant), sum(jjk.qual$total), round(sum(jjk.qual$num.compliant)/sum(jjk.qual$total) * 100,2))
     
     colnames(jjk.qual.totals) <- colnames(jjk.qual)
     
@@ -216,18 +236,30 @@ server <- function(input, output, session) {
   # Incidents
   weekly.incidents <- reactive({
     req(input$file2)
-    read.csv(input$file2$datapath, header = T) %>% 
-      # rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
+    
+    if(input$allstate == "YES")
+      
+      cbcs.state <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6)  %>% 
+      rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
+      left_join(cbcs.locations, by = "Dept.Name") 
+      
+    
+    else
+      
+      cbcs.state <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+      rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
       left_join(cbcs.locations, by = "Dept.Name") %>% 
-      mutate(Coverage = recode(Coverage,
-                               "ALBI"  = "AUTO",
-                               "ALPD"  = "AUTO",
-                               "ALAPD" = "AUTO",
-                               "GLPD"  = "GL"  ,
-                               "GLBI"  = "GL")) %>%
-      filter(manager == input$test.selection) %>%
-      filter(as.Date(Occ.Date, format = "%m/%d/%Y") >= input$dateRange[1] & as.Date(Occ.Date, format = "%m/%d/%Y") <= input$dateRange[2]) %>% # change to `Occ Date` if using Xls
-      select(manager, Dept.Name, Occ.Date, Coverage, Acc.Desc)
+      filter(manager == input$manager)
+    
+      cbcs.state %>% 
+        mutate(Coverage = recode(Coverage,
+                                 "ALBI"  = "AUTO",
+                                 "ALPD"  = "AUTO",
+                                 "ALAPD" = "AUTO",
+                                 "GLPD"  = "GL"  ,
+                                 "GLBI"  = "GL")) %>% 
+        filter(as.Date(`Occ Date`, format = "%m/%d/%Y") >= input$dateRange[1] & as.Date(`Occ Date`, format = "%m/%d/%Y") <= input$dateRange[2]) %>%   # change to `Occ Date` if using Xls
+      select(Dept.Name, `Occ Date`, Coverage, `Acc Desc`)
   })
   
   output$weekly.cbcs.incidents <- renderTable({
@@ -237,23 +269,35 @@ server <- function(input, output, session) {
   # Pivots
   cbcs.pivots.df <- reactive({
     req(input$file2)
-    read.csv(input$file2$datapath, header = T) %>% 
-      left_join(cbcs.locations, by = "Dept.Name") %>% 
+    
+    if(input$allstate == "YES")
+      
+      cbcs.pivots <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+        rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
+        left_join(cbcs.locations, by = "Dept.Name") 
+    
+    else
+      
+      cbcs.pivots <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+        rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
+        left_join(cbcs.locations, by = "Dept.Name") %>% 
+      filter(manager == input$manager)
+        
+    cbcs.pivots %>%
       mutate(Coverage = recode(Coverage,
                                "ALBI"  = "AUTO",
                                "ALPD"  = "AUTO",
                                "ALAPD" = "AUTO",
                                "GLPD"  = "GL"  ,
                                "GLBI"  = "GL"),
-             occ.year = year(as.Date(Occ.Date, format = "%m/%d/%Y"))) %>% 
-      filter(manager == input$test.selection,
-             occ.year == format(Sys.Date(), "%Y"))
+             occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>% 
+      filter(occ.year == format(Sys.Date(), "%Y"))
   })
   
   # Cost Pivot
   output$cost.pivot <- renderTable({
     costs <- cbcs.pivots.df() %>% 
-      group_by(Loc.Name, Coverage) %>% 
+      group_by(`Loc Name`, Coverage) %>% 
       mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
       summarise(Incurred = sum(raw)) %>%
       ungroup() %>% 
@@ -272,7 +316,7 @@ server <- function(input, output, session) {
   # Count Pivot
   output$count.pivot <- renderTable({
     counts <- cbcs.pivots.df() %>% 
-      group_by(Loc.Name, Coverage) %>% 
+      group_by(`Loc Name`, Coverage) %>% 
       summarise (n = n()) %>% 
       spread(Coverage, n) %>% 
       replace(., is.na(.), 0) %>% 
@@ -286,6 +330,42 @@ server <- function(input, output, session) {
     # claim count table
     claim.count <- rbind(counts,counts.tot)
   })
+  
+  # LMS Pivot
+  lms.pivots.df <- reactive({
+    
+    req(input$file3)
+    
+    if(input$allstate == "YES")
+      
+      lms <- read.csv("data/lms.csv") %>% 
+      left_join(lms.locations, "Org.Name")
+    
+    else
+      
+      lms <- read.csv("data/lms.csv") %>% 
+      left_join(lms.locations, "Org.Name") %>%
+        filter(manager == input$manager)
+    
+    lms %>% mutate(Item.Status = recode(Item.Status,
+                                "In Progress" = "Incomplete",
+                                "Not Started" = "Incomplete"),
+           comp.binary = recode(Item.Status,
+                                "Incomplete" = 0,
+                                "Completed" = 1)) %>%
+      group_by(location, Title) %>%
+      summarise(num.comp = sum(comp.binary),
+                total = length(comp.binary),
+                percent.compliant = num.comp/total * 100) %>% 
+      select(location, Title, percent.compliant) %>% 
+      pivot_wider(names_from = Title, values_from = percent.compliant)
+      
+  })
+    
+  output$lms.pivot <- renderTable({
+    lms.pivots.df()
+  })   
+      
 }
 
 shinyApp(ui, server)
