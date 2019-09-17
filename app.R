@@ -96,6 +96,14 @@ ui <- fluidPage(
       
       # Set tabs ----
       tabsetPanel(type = "tabs",
+                  # General intro tab
+                  tabPanel("Intro",
+                           h3(p("Download data from JJ Keller, Successfactors, LMS, CBCS and STARS.", 
+                                span("Do not", style = "color:red"),
+                                "change any information in your raw data pulls. Upload the indicated data sources to the left.")),
+                           h3(p("Please report any changes in reporting vendors, or territory changes to Jason Richardson (",
+                                span("jarichardson@cocacolaflorida.com", style = "color:blue"),
+                                ")."))),
                   # JJ Keller infos tab
                   tabPanel("JJ Keller",  plotOutput(outputId = "jjk.compliance.pie"),
                            plotOutput(outputId = "jjk.driver.stats.pie"),
