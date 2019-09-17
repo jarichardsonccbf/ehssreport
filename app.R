@@ -38,7 +38,7 @@ fileInput2 <- function(inputId, label = NULL, labelIcon = NULL, multiple = FALSE
 ui <- fluidPage(
   
   # App title ----
-  titlePanel("Upload the files indicated and select your dates, then press download"),
+  titlePanel("EHSS Regional Manager Weekly Reporting Tool"),
   
   # define class fileinput_2 to hide inputTag in fileInput2. Not sure what this is doing.
   tags$head(tags$style(HTML(
@@ -56,22 +56,22 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       
+      # LMS upload ----
+      h3("Attach LMS csv"),
+      fileInput2("file3", "File location", labelIcon = "folder-open-o", 
+                 accept = c(".csv"), progress = TRUE),
+      
+      # CBCS upload ----
+      h3("Attach CBCS Loss Run xlsx"),
+      fileInput2("file2", "File location", labelIcon = "folder-open-o", 
+                 accept = c(".xlsx"), progress = TRUE),
+      
       # JJK upload ----
-      h3("Attach JJ Keller"),  
+      h3("Attach JJ Keller csv"),  
       fileInput2("file1", "File location", labelIcon = "folder-open-o", 
                  accept = c("text/csv",
                             "text/comma-separated-values,text/plain",
                             ".csv"), progress = TRUE),
-      
-      # CBCS upload ----
-      h3("Attach CBCS Loss Run Report"),
-      fileInput2("file2", "File location", labelIcon = "folder-open-o", 
-                 accept = c(".xlsx"), progress = TRUE),
-      
-      # LMS upload ----
-      h3("Attach LMS Data Pull"),
-      fileInput2("file3", "File location", labelIcon = "folder-open-o", 
-                 accept = c(".csv"), progress = TRUE),
       
       # All territories or not ----
       selectInput("allstate", label = h3("Entire territory?"),
@@ -96,17 +96,28 @@ ui <- fluidPage(
       
       # Set tabs ----
       tabsetPanel(type = "tabs",
-                  # JJ Keller infos tab
-                  tabPanel("JJ Keller",  plotOutput(outputId = "jjk.compliance.pie"),
-                           plotOutput(outputId = "jjk.driver.stats.pie"),
-                           tableOutput(outputId = "driver.qual.table")),
+                  # General intro tab
+                  tabPanel("Intro",
+                           h3(p("Download data from JJ Keller, Successfactors, LMS, CBCS and STARS.", 
+                                span("Do not", style = "color:red"),
+                                "change any information in your raw data pulls. Upload the indicated data sources to the left.")),
+                           h3(p("Indicate 'YES' under 'Entire territory?' if you would like to see the entire CCBF system or 'NO' to display a specific region.")),
+                           h3(p("The date range will default to the past 7 days and will display CBCS results for this range unless otherwise specified.")),
+                           h3(p("Please report any errors, changes in vendors or data sources, or location shifts to Jason Richardson (jarichardson@cocacolaflorida.com).
+                               "))
+                  ),
+                  
+                  #LMS tab
+                  tabPanel("LMS", tableOutput(outputId = "lms.pivot")),
                   # Incident descriptions tab
                   tabPanel("Weekly Safety Incidents", tableOutput(outputId = "weekly.cbcs.incidents")),
                   # Costs and Counts tab
                   tabPanel("Claims Costs and Counts", tableOutput(outputId = "cost.pivot"),
                            tableOutput(outputId = "count.pivot")),
-                  #LMS tab
-                  tabPanel("LMS", tableOutput(outputId = "lms.pivot"))
+                  # JJ Keller infos tab
+                  tabPanel("JJ Keller",  tableOutput(outputId = "driver.qual.table"),
+                           plotOutput(outputId = "jjk.compliance.pie"),
+                           plotOutput(outputId = "jjk.driver.stats.pie"))
       )
       
     )
