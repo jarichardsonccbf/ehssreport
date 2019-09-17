@@ -4,7 +4,8 @@ library(janitor)
 library(scales)
 library(lubridate)
 library(readxl)
-
+library(flextable)
+library(officer)
 
 source("data/locations.R")
 
@@ -55,24 +56,24 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       
-      # File 1 upload ----
+      # JJK upload ----
       h3("Attach JJ Keller"),  
       fileInput2("file1", "File location", labelIcon = "folder-open-o", 
                  accept = c("text/csv",
                             "text/comma-separated-values,text/plain",
                             ".csv"), progress = TRUE),
       
-      # File 2 upload ----
+      # CBCS upload ----
       h3("Attach CBCS Loss Run Report"),
       fileInput2("file2", "File location", labelIcon = "folder-open-o", 
                  accept = c(".xlsx"), progress = TRUE),
       
-      # File 3 upload ----
+      # LMS upload ----
       h3("Attach LMS Data Pull"),
       fileInput2("file3", "File location", labelIcon = "folder-open-o", 
                  accept = c(".csv"), progress = TRUE),
       
-      # All territories or not
+      # All territories or not ----
       selectInput("allstate", label = h3("Entire territory?"),
                   choices = list("NO", "YES")),
       
@@ -83,7 +84,10 @@ ui <- fluidPage(
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
                      label = h3("Input date range for weekly incident table"),
-                     start = Sys.Date() - 6, end = Sys.Date())
+                     start = Sys.Date() - 6, end = Sys.Date()),
+      
+      # Download buttom ----
+      downloadButton("download_powerpoint", "Download Tables to Powerpoint")
 
     ),
     
@@ -111,7 +115,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  # JJ Keller Functions ----
+  # JJK compliance pie chart ----
   
   # jjk compliance pie df
   jjk.compliance.pie.df <- reactive({
@@ -148,6 +152,8 @@ server <- function(input, output, session) {
         axis.text.x = element_blank(),
         legend.background = element_rect(linetype = "solid"))
   })
+  
+  # JJK driver states pie chart ----
   
   # jjk driver stats pie df
   jjk.driver.stats.pie.df <- reactive({
@@ -193,6 +199,8 @@ server <- function(input, output, session) {
     
   })
   
+  # JJK driver qual table ---- 
+  
   # driver qualification tables
   jjk.qual.table <- reactive({
     req(input$file1)
@@ -231,7 +239,7 @@ server <- function(input, output, session) {
     jjk.qual.table()
   })
   
-  # CBCS details ----
+  # CBCS weekly incidents ----
   
   # Incidents
   weekly.incidents <- reactive({
@@ -239,14 +247,14 @@ server <- function(input, output, session) {
     
     if(input$allstate == "YES")
       
-      cbcs.state <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6)  %>% 
+      cbcs.state <- read_excel(input$file2$datapath, skip = 6)  %>% 
       rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
       left_join(cbcs.locations, by = "Dept.Name") 
       
     
     else
       
-      cbcs.state <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+      cbcs.state <- read_excel(input$file2$datapath, skip = 6) %>% 
       rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
       left_join(cbcs.locations, by = "Dept.Name") %>% 
       filter(manager == input$manager)
@@ -257,28 +265,30 @@ server <- function(input, output, session) {
                                  "ALPD"  = "AUTO",
                                  "ALAPD" = "AUTO",
                                  "GLPD"  = "GL"  ,
-                                 "GLBI"  = "GL")) %>% 
-        filter(as.Date(`Occ Date`, format = "%m/%d/%Y") >= input$dateRange[1] & as.Date(`Occ Date`, format = "%m/%d/%Y") <= input$dateRange[2]) %>%   # change to `Occ Date` if using Xls
-      select(Dept.Name, `Occ Date`, Coverage, `Acc Desc`)
+                                 "GLBI"  = "GL") ,
+               Incident = paste(`Occ Date`, "-",Coverage, "-",`Acc Desc`)) %>% 
+        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2]) %>%   # change to `Occ Date` if using Xls
+        select(Incident)
   })
   
   output$weekly.cbcs.incidents <- renderTable({
     weekly.incidents()
   })
   
-  # Pivots
+  # DF for CBCS pivots ----
+  
   cbcs.pivots.df <- reactive({
     req(input$file2)
     
     if(input$allstate == "YES")
       
-      cbcs.pivots <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+      cbcs.pivots <- read_excel(input$file2$datapath, skip = 6) %>% 
         rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
         left_join(cbcs.locations, by = "Dept.Name") 
     
     else
       
-      cbcs.pivots <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>% 
+      cbcs.pivots <- read_excel(input$file2$datapath, skip = 6) %>% 
         rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
         left_join(cbcs.locations, by = "Dept.Name") %>% 
       filter(manager == input$manager)
@@ -294,7 +304,26 @@ server <- function(input, output, session) {
       filter(occ.year == format(Sys.Date(), "%Y"))
   })
   
-  # Cost Pivot
+  # Cost Pivot ----
+  
+  cost.pivot.flex <- reactive({
+    costs <- cbcs.pivots.df() %>% 
+      group_by(`Loc Name`, Coverage) %>% 
+      mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
+      summarise(Incurred = sum(raw)) %>%
+      ungroup() %>% 
+      spread(Coverage, Incurred) %>%
+      replace(., is.na(.), 0) %>% 
+      mutate(Totals = rowSums(.[2:4]))
+    
+    costs.tot <- data.frame("Total", sum(costs$AUTO), sum(costs$GL), sum(costs$WC), sum(costs$Totals))
+    
+    colnames(costs.tot) <- colnames(costs)
+    
+    # claim cost table
+    claim.cost <- rbind(costs, costs.tot)
+  })
+  
   output$cost.pivot <- renderTable({
     costs <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
@@ -310,10 +339,28 @@ server <- function(input, output, session) {
     colnames(costs.tot) <- colnames(costs)
     
     # claim cost table
-    rbind(costs, costs.tot)
+    claim.cost <- rbind(costs, costs.tot)
   })
   
-  # Count Pivot
+  # Count Pivot----
+  
+  count.pivot.flex <- reactive({
+    counts <- cbcs.pivots.df() %>% 
+      group_by(`Loc Name`, Coverage) %>% 
+      summarise (n = n()) %>% 
+      spread(Coverage, n) %>% 
+      replace(., is.na(.), 0) %>% 
+      mutate(Totals = sum(AUTO, GL, WC)) %>% 
+      ungroup()
+    
+    counts.tot <- data.frame("Total", sum(counts$AUTO), sum(counts$GL), sum(counts$WC), sum(counts$Totals))
+    
+    colnames(counts.tot) <- colnames(counts)
+    
+    # claim count table
+    claim.count <- rbind(counts,counts.tot)
+  })
+  
   output$count.pivot <- renderTable({
     counts <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
@@ -331,14 +378,14 @@ server <- function(input, output, session) {
     claim.count <- rbind(counts,counts.tot)
   })
   
-  # LMS Pivot
+  # LMS Pivot ----
   lms.pivots.df <- reactive({
     
     req(input$file3)
     
     if(input$allstate == "YES")
       
-      lms <- read.csv("data/lms.csv") %>% 
+      lms <- read.csv(input$file3$datapath) %>% 
       left_join(lms.locations, "Org.Name")
     
     else
@@ -361,10 +408,132 @@ server <- function(input, output, session) {
       pivot_wider(names_from = Title, values_from = percent.compliant)
       
   })
-    
+  
   output$lms.pivot <- renderTable({
     lms.pivots.df()
   })   
+  
+  # PPT
+  
+  output$download_powerpoint <- downloadHandler(
+    filename = function() {  
+      "EHSStest.pptx"
+    },
+    content = function(file) {
+      
+      # jjk flex ----
+      flextable_dq <- flextable(jjk.qual.table()) %>% 
+        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
+        width(width = 1.25) %>% 
+        height_all(height = 0.35) %>% 
+        theme_zebra() %>% 
+        align(align = "center", part = "all")
+      
+      # cbcs incidents flex ----
+      flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
+        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
+        width(width = 1.25) %>% 
+        height_all(height = 0.35) %>% 
+        theme_zebra() %>% 
+        align(align = "center", part = "all")
+      
+      # cbcs cost flex ----
+      flextable_cbcs.cost <- flextable(cost.pivot.flex()) %>% 
+        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
+        width(width = 1.25) %>% 
+        height_all(height = 0.35) %>% 
+        theme_zebra() %>% 
+        align(align = "center", part = "all")
+      
+      # cbcs count flex ----
+      flextable_cbcs.count <- flextable(count.pivot.flex()) %>% 
+        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
+        width(width = 1.25) %>% 
+        height_all(height = 0.35) %>% 
+        theme_zebra() %>% 
+        align(align = "center", part = "all")
+      
+      # lms flex ----
+      flextable_lms <- flextable(lms.pivots.df()) %>% 
+        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
+        width(width = 1.25) %>% 
+        height_all(height = 0.35) %>% 
+        theme_zebra() %>% 
+        align(align = "center", part = "all")
+      
+      example_pp <- read_pptx() %>% 
+        add_slide(layout = "Title Slide", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "ctrTitle",
+          str = "This is a test"
+        ) %>% 
+        ph_with(
+          location = ph_location_type(type = "subTitle"),
+          value = "of the EHSS Weekly Automation Report download"
+        ) %>% 
+        
+        # LMS slide ----
+        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y"))
+        ) %>% 
+        ph_with_flextable_at(
+          value = flextable_lms,
+          left = 2.5,
+          top = 2
+        ) %>% 
+        
+        # Safety incidents slide ----
+        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = "Safety - Incidents this week"
+        ) %>% 
+        ph_with_flextable_at(
+          value = flextable_cbcs.inc,
+          left = 2.5,
+          top = 2
+        ) %>% 
+        
+        # Claim cost/count slides (collapse to only one slide) ----
+        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", Sys.Date())
+        ) %>% 
+        ph_with_flextable_at(
+          value = flextable_cbcs.count,
+          left = 2.5,
+          top = 2
+        ) %>% 
+        
+        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", Sys.Date())
+        ) %>% 
+        ph_with_flextable_at(
+          value = flextable_cbcs.cost,
+          left = 2.5,
+          top = 2
+        ) %>% 
+        
+        # Driver qual slide ----
+        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = "Driver Qualification File Compliance Status",
+        ) %>% 
+        ph_with_flextable_at(
+          value = flextable_lms,
+          left = 2.5,
+          top = 2
+        )
+        
+      print(example_pp, target = file)
+    }
+  )
       
 }
 
