@@ -19,8 +19,7 @@ stars.df <- read_excel("data/STARS.xlsx") %>%
                            "Complete - Preventable" = "Complete P")) %>% 
   filter(Status != "Error Creating",
          Status != "Scheduled for Create",
-         year == year(Sys.Date()),
-         manager == "TAMPA") %>% 
+         year == year(Sys.Date())) %>% 
   droplevels()
 
 type <- stars.df %>% 

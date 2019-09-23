@@ -76,6 +76,13 @@ ui <- fluidPage(
                             "text/comma-separated-values,text/plain",
                             ".csv"), progress = TRUE),
       
+      # STARS upload ----
+      h3("Attach STARS xlsx"),  
+      fileInput2("file4", "File location", labelIcon = "folder-open-o", 
+                 accept = c("text/csv",
+                            "text/comma-separated-values,text/plain",
+                            ".csv"), progress = TRUE),
+      
       # All territories or not ----
       selectInput("allstate", label = h3("Entire territory?"),
                   choices = list("NO", "YES")),
@@ -116,17 +123,23 @@ ui <- fluidPage(
                                "))
                   ),
                   
-                  #LMS tab
+                  # LMS tab
                   tabPanel("LMS", tableOutput(outputId = "lms.pivot")),
+                  
                   # Incident descriptions tab
                   tabPanel("Weekly Safety Incidents", tableOutput(outputId = "weekly.cbcs.incidents")),
+                  
                   # Costs and Counts tab
                   tabPanel("Claims Costs and Counts", tableOutput(outputId = "cost.pivot"),
                            tableOutput(outputId = "count.pivot")),
+                  
                   # JJ Keller tab
                   tabPanel("JJ Keller",  tableOutput(outputId = "driver.qual.table"),
                            plotOutput(outputId = "jjk.compliance.pie"),
-                           plotOutput(outputId = "jjk.driver.stats.pie"))
+                           plotOutput(outputId = "jjk.driver.stats.pie")),
+                  
+                  # STARS tab
+                  tabPanel("STARS",  tableOutput(outputId = "stars.status"))
       )
       
     )
@@ -484,7 +497,74 @@ server <- function(input, output, session) {
     lms.pivots.df()
   })   
   
+  # STARS Pivot ----
   
+  stars.pivots.df <- reactive({
+    
+    req(input$file4)
+    
+    if(input$allstate == "YES")
+      
+      stars.a <- read_excel(input$file4$datapath) %>% 
+        rename(Location = `Location Name`) %>% 
+        left_join(stars.locations, by = "Location")
+    
+    else
+      
+      stars.a <- read_excel(input$file4$datapath) %>% 
+        rename(Location = `Location Name`) %>% 
+        left_join(stars.locations, by = "Location") %>% 
+        filter(manager == input$manager)
+    
+      stars.b <- stars.a %>%
+        mutate(year = year(`Creation Date`),
+               `Investigation Type` = recode(`Investigation Type`,
+                                             "Vehicle Incident Template" = "Vehicle",
+                                             "Non-Vehicle Incident Template" = "Non-Vehicle"),
+               `Status` = recode(`Status`,
+                                 "Complete - Nonpreventable" = "Complete NP",
+                                 "Complete - Preventable" = "Complete P")) %>% 
+          filter(Status != "Error Creating",
+                 Status != "Scheduled for Create",
+                 year == year(Sys.Date())) %>% 
+          droplevels()
+        
+        type <- stars.b %>% 
+          group_by(Location, Status, `Investigation Type`) %>% 
+          summarise (n = n()) %>% 
+          pivot_wider(names_from = Status, values_from = n)
+        
+        totals <- stars.df %>% 
+          group_by(Location, Status) %>% 
+          summarise(n = n()) %>% 
+          pivot_wider(names_from = Status, values_from = n) %>% 
+          mutate(`Investigation Type` = "A")
+        
+        type.totals <- rbind(type, totals) %>%
+          arrange(Location,
+                  `Investigation Type`) %>% 
+          mutate(`Investigation Type` = recode(`Investigation Type`,
+                                               "A" = "Total")) %>% 
+          ungroup()
+        
+        sums <- stars.df %>% 
+          group_by(Status) %>% 
+          summarise(n = n()) %>% 
+          pivot_wider(names_from = Status, values_from = n) %>% 
+          mutate(Total = "Total",
+                 empty = NA) %>% ungroup() %>% 
+          select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
+        
+        colnames(sums) <- colnames(type.totals)
+        
+        stars.pivot <- rbind(type.totals, sums) %>% 
+          mutate(Total = rowSums(.[3:6], na.rm = TRUE))
+    
+  })
+  
+  output$stars.status <- renderTable({
+    stars.pivots.df()
+  })   
   
   # PPT ----
   
