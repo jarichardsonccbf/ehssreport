@@ -6,8 +6,11 @@ library(lubridate)
 library(readxl)
 library(flextable)
 library(officer)
+library(xlsx)
 
-source("data/locations.R")
+options(shiny.maxRequestSize=30*1024^2)
+
+source("locations2.R")
 
 # Function for uploading multiple. I have no idea how this works.
 fileInput2 <- function(inputId, label = NULL, labelIcon = NULL, multiple = FALSE, 
@@ -79,7 +82,13 @@ ui <- fluidPage(
       
       # Territory selection ----
       selectInput("manager", label = h3("Region"), 
-                  choices = list("TAMPA", "PLACEHOLDER")),
+                  choices = list("TAMPA",
+                                 "ORLANDO",
+                                 "SOUTH FL",
+                                 "JACKSONVILLE",
+                                 "TAMPA",
+                                 "FT MYERS - BROWARD", 
+                                 "PLACEHOLDER")),
       
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
@@ -94,7 +103,7 @@ ui <- fluidPage(
     # Main panel display. Use tabs, one for each slide ----
     mainPanel(
       
-      # Set tabs ----
+      # Define tabs 
       tabsetPanel(type = "tabs",
                   # General intro tab
                   tabPanel("Intro",
@@ -114,7 +123,7 @@ ui <- fluidPage(
                   # Costs and Counts tab
                   tabPanel("Claims Costs and Counts", tableOutput(outputId = "cost.pivot"),
                            tableOutput(outputId = "count.pivot")),
-                  # JJ Keller infos tab
+                  # JJ Keller tab
                   tabPanel("JJ Keller",  tableOutput(outputId = "driver.qual.table"),
                            plotOutput(outputId = "jjk.compliance.pie"),
                            plotOutput(outputId = "jjk.driver.stats.pie"))
@@ -164,7 +173,7 @@ server <- function(input, output, session) {
         legend.background = element_rect(linetype = "solid"))
   })
   
-  # JJK driver states pie chart ----
+  # JJK driver stats pie chart ----
   
   # jjk driver stats pie df
   jjk.driver.stats.pie.df <- reactive({
@@ -238,12 +247,26 @@ server <- function(input, output, session) {
                 total             = length(dq.binary   ),
                 percent.compliant = num.compliant/total * 100) 
     
-    jjk.qual.totals <- data.frame("Total", sum(jjk.qual$num.compliant), sum(jjk.qual$total), round(sum(jjk.qual$num.compliant)/sum(jjk.qual$total) * 100,2))
+    jjk.qual.totals <- data.frame("Total:", sum(jjk.qual$num.compliant), sum(jjk.qual$total), round(sum(jjk.qual$num.compliant)/sum(jjk.qual$total) * 100,2))
     
     colnames(jjk.qual.totals) <- colnames(jjk.qual)
     
     # driver qual table
-    rbind(jjk.qual,jjk.qual.totals)
+    rbind(jjk.qual,jjk.qual.totals) %>% 
+      mutate(
+        num.compliant = format(round(num.compliant, 0), nsmall = 0),
+        percent.compliant = paste(round(percent.compliant,2), "%", sep = ""),
+        Assigned.Location = recode(Assigned.Location,
+                                   "Tampa Equipment Services" = "Tampa ES",
+                                   "Tampa Fleet Shop" = "Tampa Fleet",
+                                   "Tampa Transportation" = "Tampa Transport")
+      ) %>% 
+      rename(
+        Location = Assigned.Location,
+        `# Compliant Employees` = num.compliant,
+        `Total Employees` = total,
+        `Percent Compliant` = percent.compliant
+      )
   })
   
   output$driver.qual.table <- renderTable({
@@ -271,15 +294,16 @@ server <- function(input, output, session) {
         filter(manager == input$manager)
     
     cbcs.state %>% 
+      rename(Location = `Loc Name`) %>% 
       mutate(Coverage = recode(Coverage,
-                               "ALBI"  = "AUTO",
-                               "ALPD"  = "AUTO",
-                               "ALAPD" = "AUTO",
+                               "ALBI"  = "Auto",
+                               "ALPD"  = "Auto",
+                               "ALAPD" = "A",
                                "GLPD"  = "GL"  ,
                                "GLBI"  = "GL") ,
-             Incident = paste(`Occ Date`, "-",Coverage, "-",`Acc Desc`)) %>% 
+             Incident = paste(format(`Occ Date`, format = "%m/%d/%y"), "-",Coverage, "-",`Acc Desc`)) %>% 
       filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2]) %>%   # change to `Occ Date` if using Xls
-      select(Incident)
+      select(Location, Incident)
   })
   
   output$weekly.cbcs.incidents <- renderTable({
@@ -306,11 +330,13 @@ server <- function(input, output, session) {
     
     cbcs.pivots %>%
       mutate(Coverage = recode(Coverage,
-                               "ALBI"  = "AUTO",
-                               "ALPD"  = "AUTO",
-                               "ALAPD" = "AUTO",
+                               "ALBI"  = "Auto",
+                               "ALPD"  = "Auto",
+                               "ALAPD" = "Auto",
                                "GLPD"  = "GL"  ,
                                "GLBI"  = "GL"),
+             `Loc Name` = recode(`Loc Name`,
+                                 "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
              occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>% 
       filter(occ.year == format(Sys.Date(), "%Y"))
   })
@@ -323,16 +349,24 @@ server <- function(input, output, session) {
       mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
       summarise(Incurred = sum(raw)) %>%
       ungroup() %>% 
-      spread(Coverage, Incurred) %>%
+      pivot_wider(names_from = Coverage, values_from = Incurred) %>%
+      rename(Location = `Loc Name`) %>% 
+      select(Location, Auto, GL, WC) %>% 
       replace(., is.na(.), 0) %>% 
-      mutate(Totals = rowSums(.[2:4]))
+      mutate(Total = rowSums(.[2:4]))
     
-    costs.tot <- data.frame("Total", sum(costs$AUTO), sum(costs$GL), sum(costs$WC), sum(costs$Totals))
+    costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
     
     colnames(costs.tot) <- colnames(costs)
     
     # claim cost table
-    claim.cost <- rbind(costs, costs.tot)
+    claim.cost <- rbind(costs, costs.tot) %>% 
+      mutate(
+        WC = paste("$", round(WC, 0), sep = ""),
+        Auto = paste("$", round(Auto, 0), sep = ""),
+        GL = paste("$", round(GL, 0), sep = ""),
+        Total = paste("$", round(Total, 0), sep = "")
+      )
   })
   
   output$cost.pivot <- renderTable({
@@ -341,16 +375,24 @@ server <- function(input, output, session) {
       mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
       summarise(Incurred = sum(raw)) %>%
       ungroup() %>% 
-      spread(Coverage, Incurred) %>%
+      pivot_wider(names_from = Coverage, values_from = Incurred) %>%
+      rename(Location = `Loc Name`) %>% 
+      select(Location, Auto, GL, WC) %>% 
       replace(., is.na(.), 0) %>% 
-      mutate(Totals = rowSums(.[2:4]))
+      mutate(Total = rowSums(.[2:4]))
     
-    costs.tot <- data.frame("Total", sum(costs$AUTO), sum(costs$GL), sum(costs$WC), sum(costs$Totals))
+    costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
     
     colnames(costs.tot) <- colnames(costs)
     
     # claim cost table
-    claim.cost <- rbind(costs, costs.tot)
+    claim.cost <- rbind(costs, costs.tot) %>% 
+      mutate(
+        WC = paste("$", round(WC, 0), sep = ""),
+        Auto = paste("$", round(Auto, 0), sep = ""),
+        GL = paste("$", round(GL, 0), sep = ""),
+        Total = paste("$", round(Total, 0), sep = "")
+      )
   })
   
   # Count Pivot----
@@ -359,34 +401,50 @@ server <- function(input, output, session) {
     counts <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
       summarise (n = n()) %>% 
-      spread(Coverage, n) %>% 
+      pivot_wider(names_from = Coverage, values_from = n) %>%
+      rename(Location = `Loc Name`) %>%
+      select(Location, Auto, GL, WC) %>% 
       replace(., is.na(.), 0) %>% 
-      mutate(Totals = sum(AUTO, GL, WC)) %>% 
+      mutate(Total = sum(Auto, GL, WC)) %>% 
       ungroup()
     
-    counts.tot <- data.frame("Total", sum(counts$AUTO), sum(counts$GL), sum(counts$WC), sum(counts$Totals))
+    counts.tot <- data.frame("Total", sum(counts$Auto), sum(counts$GL), sum(counts$WC), sum(counts$Total))
     
     colnames(counts.tot) <- colnames(counts)
     
     # claim count table
-    claim.count <- rbind(counts,counts.tot)
+    claim.count <- rbind(counts,counts.tot) %>% 
+      mutate(
+        WC = format(round(WC, 0), nsmall = 0),
+        Auto = format(round(Auto, 0), nsmall = 0),
+        GL = format(round(GL, 0), nsmall = 0),
+        Total = format(round(Total, 0), nsmall = 0)
+      )
   })
   
   output$count.pivot <- renderTable({
     counts <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
       summarise (n = n()) %>% 
-      spread(Coverage, n) %>% 
+      pivot_wider(names_from = Coverage, values_from = n) %>% 
+      rename(Location = `Loc Name`) %>%
+      select(Location, Auto, GL, WC) %>% 
       replace(., is.na(.), 0) %>% 
-      mutate(Totals = sum(AUTO, GL, WC)) %>% 
+      mutate(Total = sum(Auto, GL, WC)) %>% 
       ungroup()
     
-    counts.tot <- data.frame("Total", sum(counts$AUTO), sum(counts$GL), sum(counts$WC), sum(counts$Totals))
+    counts.tot <- data.frame("Total", sum(counts$Auto), sum(counts$GL), sum(counts$WC), sum(counts$Total))
     
     colnames(counts.tot) <- colnames(counts)
     
     # claim count table
-    claim.count <- rbind(counts,counts.tot)
+    claim.count <- rbind(counts,counts.tot) %>% 
+      mutate(
+        WC = format(round(WC, 0), nsmall = 0),
+        Auto = format(round(Auto, 0), nsmall = 0),
+        GL = format(round(GL, 0), nsmall = 0),
+        Total = format(round(Total, 0), nsmall = 0)
+      )
   })
   
   # LMS Pivot ----
@@ -401,7 +459,7 @@ server <- function(input, output, session) {
     
     else
       
-      lms <- read.csv("data/lms.csv") %>% 
+      lms <- read.csv(input$file3$datapath) %>% 
         left_join(lms.locations, "Org.Name") %>%
         filter(manager == input$manager)
     
@@ -416,6 +474,8 @@ server <- function(input, output, session) {
                 total = length(comp.binary),
                 percent.compliant = num.comp/total * 100) %>% 
       select(location, Title, percent.compliant) %>% 
+      rename(Location = location) %>% 
+      mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
       pivot_wider(names_from = Title, values_from = percent.compliant)
     
   })
@@ -424,7 +484,9 @@ server <- function(input, output, session) {
     lms.pivots.df()
   })   
   
-  # PPT
+  
+  
+  # PPT ----
   
   output$download_powerpoint <- downloadHandler(
     filename = function() {  
@@ -434,65 +496,117 @@ server <- function(input, output, session) {
       
       # jjk flex ----
       flextable_dq <- flextable(jjk.qual.table()) %>% 
-        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
-        width(width = 1.25) %>% 
-        height_all(height = 0.35) %>% 
-        theme_zebra() %>% 
-        align(align = "center", part = "all")
+        border_remove() %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>% 
+        align(align = "center", part = "all") %>% 
+        align(align = "left", part = "body", j = 1) %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(jjk.qual.table())$body$dataset)) %>% 
+        bold(bold = TRUE, part = "header") %>% 
+        height(height = 0.74, part = "header") %>% 
+        height(height = 0.28, part = "body") %>% 
+        width(width = 1.4, j = 1) %>% 
+        width(width = 1.2, j = 2:4) %>% 
+        bg(bg = "dark red", part = "header") %>% 
+        color(color = "white", part = "header")
       
       # cbcs incidents flex ----
       flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
-        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
-        width(width = 1.25) %>% 
-        height_all(height = 0.35) %>% 
-        theme_zebra() %>% 
-        align(align = "center", part = "all")
+        border_remove() %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        align(align = "left", part = "all") %>% 
+        height(part = "header", height = 0.33) %>%
+        height(part = "body", height = 1) %>% 
+        width(width = 1.81, j = 1) %>% 
+        width(width = 5.59, j = 2)
       
       # cbcs cost flex ----
       flextable_cbcs.cost <- flextable(cost.pivot.flex()) %>% 
-        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
-        width(width = 1.25) %>% 
-        height_all(height = 0.35) %>% 
-        theme_zebra() %>% 
-        align(align = "center", part = "all")
+        add_header_lines(values = "Claim Cost", top = TRUE) %>% 
+        border_remove() %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        bold(bold = TRUE, part = "header") %>% 
+        align(align = "left", part = "all", j = 1) %>% 
+        align(align = "center", part = "header", j = 2:5) %>% 
+        bg(bg = "light blue", part = "header") %>% 
+        bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot.flex())$body$dataset)) %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot.flex())$body$dataset)) %>% 
+        width(width = 1.48, j = 1) %>% 
+        width(width = 1, j = 2:4) %>% 
+        width(width = 1.14, j = 5)
       
       # cbcs count flex ----
       flextable_cbcs.count <- flextable(count.pivot.flex()) %>% 
-        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
-        width(width = 1.25) %>% 
-        height_all(height = 0.35) %>% 
-        theme_zebra() %>% 
-        align(align = "center", part = "all")
+        add_header_lines(values = "Claim Count", top = TRUE) %>% 
+        border_remove() %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        bold(bold = TRUE, part = "header") %>% 
+        align(align = "left", part = "all", j = 1) %>% 
+        align(align = "center", part = "header", j = 2:5) %>% 
+        bg(bg = "light blue", part = "header") %>% 
+        bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot.flex())$body$dataset)) %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot.flex())$body$dataset)) %>% 
+        width(width = 1.48, j = 1) %>% 
+        width(width = 1, j = 2:4) %>% 
+        width(width = 1.14, j = 5)
       
       # lms flex ----
       flextable_lms <- flextable(lms.pivots.df()) %>% 
-        # colformat_num(col_keys = c("Location", "# Compliant Employees", "Total Employees", "Percent Compliant"), digits = 0) %>% 
-        width(width = 1.25) %>% 
-        height_all(height = 0.35) %>% 
-        theme_zebra() %>% 
-        align(align = "center", part = "all")
+        border_remove() %>% 
+        rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
+        align(j = 1, part = "header") %>% 
+        align(j = 1, align = "left") %>%
+        align(align = "center", part = "header") %>% 
+        add_header_lines(values = paste("EHSS Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>% 
+        height(part = "header", height = 2.28) %>%  
+        width(width = 1.35, j = 1) %>% 
+        width(width = 0.71, j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
+        bg(bg = "light blue", part = "header") %>% 
+        height(height = 0.3, part = "header", i = 1) %>% 
+        bold(bold = TRUE, part = "header") %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all")
       
       example_pp <- read_pptx() %>% 
         add_slide(layout = "Title Slide", master = "Office Theme") %>% 
         ph_with_text(
           type = "ctrTitle",
-          str = "This is a test"
+          str = "Weekly P3 Deck"
         ) %>% 
         ph_with(
           location = ph_location_type(type = "subTitle"),
-          value = "of the EHSS Weekly Automation Report download"
+          value = "Copy and paste the generated tables into your report"
         ) %>% 
         
         # LMS slide ----
+      # paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y"))
+      
       add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y"))
-        ) %>% 
-        ph_with_flextable_at(
+        ph_with(
+          block_list(
+            fpar(fp_p = fp_par(text.align = "center"),
+                 ftext(paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y")), 
+                       prop = fp_text(font.size = 28)
+                 )
+            )
+          ),
+          location = ph_location_type(type = "title")) %>% 
+        ph_with_flextable(
           value = flextable_lms,
-          left = 2.5,
-          top = 2
+          type = "body"
         ) %>% 
         
         # Safety incidents slide ----
@@ -501,33 +615,30 @@ server <- function(input, output, session) {
           type = "title",
           str = "Safety - Incidents this week"
         ) %>% 
-        ph_with_flextable_at(
+        ph_with_flextable(
           value = flextable_cbcs.inc,
-          left = 2.5,
-          top = 2
+          type = "body"
         ) %>% 
         
         # Claim cost/count slides (collapse to only one slide) ----
       add_slide(layout = "Title and Content", master = "Office Theme") %>% 
         ph_with_text(
           type = "title",
-          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", Sys.Date())
+          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
         ) %>% 
-        ph_with_flextable_at(
+        ph_with_flextable(
           value = flextable_cbcs.count,
-          left = 2.5,
-          top = 2
+          type = "body"
         ) %>% 
         
         add_slide(layout = "Title and Content", master = "Office Theme") %>% 
         ph_with_text(
           type = "title",
-          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", Sys.Date())
+          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
         ) %>% 
-        ph_with_flextable_at(
+        ph_with_flextable(
           value = flextable_cbcs.cost,
-          left = 2.5,
-          top = 2
+          type = "body"
         ) %>% 
         
         # Driver qual slide ----
@@ -536,10 +647,9 @@ server <- function(input, output, session) {
           type = "title",
           str = "Driver Qualification File Compliance Status",
         ) %>% 
-        ph_with_flextable_at(
-          value = flextable_lms,
-          left = 2.5,
-          top = 2
+        ph_with_flextable(
+          value = flextable_dq,
+          type = "body"
         )
       
       print(example_pp, target = file)
