@@ -4,9 +4,6 @@ library(lubridate)
 
 source("locations2.R")
 
-stars.df$Location
-stars.locations$Location
-
 stars.df <- read_excel("data/STARS.xlsx") %>% 
   rename(Location = `Location Name`) %>% 
   left_join(stars.locations, by = "Location") %>%  
@@ -51,4 +48,5 @@ sums <- stars.df %>%
 colnames(sums) <- colnames(type.totals)
 
 stars.pivot <- rbind(type.totals, sums) %>% 
+  rename("Count of" = "Investigation Type")
   mutate(Total = rowSums(.[3:6], na.rm = TRUE))

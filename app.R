@@ -79,9 +79,7 @@ ui <- fluidPage(
       # STARS upload ----
       h3("Attach STARS xlsx"),  
       fileInput2("file4", "File location", labelIcon = "folder-open-o", 
-                 accept = c("text/csv",
-                            "text/comma-separated-values,text/plain",
-                            ".csv"), progress = TRUE),
+                 accept = c(".xlsx"), progress = TRUE),
       
       # All territories or not ----
       selectInput("allstate", label = h3("Entire territory?"),
@@ -114,7 +112,7 @@ ui <- fluidPage(
       tabsetPanel(type = "tabs",
                   # General intro tab
                   tabPanel("Intro",
-                           h3(p("Download data from JJ Keller, Successfactors, LMS, CBCS and STARS.", 
+                           h3(p("Download data from LMS, CBCS, JJ Keller, and STARS.", 
                                 span("Do not", style = "color:red"),
                                 "change any information in your raw data pulls. Upload the indicated data sources to the left.")),
                            h3(p("Indicate 'YES' under 'Entire territory?' if you would like to see the entire CCBF system or 'NO' to display a specific region.")),
@@ -534,7 +532,7 @@ server <- function(input, output, session) {
           summarise (n = n()) %>% 
           pivot_wider(names_from = Status, values_from = n)
         
-        totals <- stars.df %>% 
+        totals <- stars.b %>% 
           group_by(Location, Status) %>% 
           summarise(n = n()) %>% 
           pivot_wider(names_from = Status, values_from = n) %>% 
@@ -547,7 +545,7 @@ server <- function(input, output, session) {
                                                "A" = "Total")) %>% 
           ungroup()
         
-        sums <- stars.df %>% 
+        sums <- stars.b %>% 
           group_by(Status) %>% 
           summarise(n = n()) %>% 
           pivot_wider(names_from = Status, values_from = n) %>% 
@@ -558,7 +556,8 @@ server <- function(input, output, session) {
         colnames(sums) <- colnames(type.totals)
         
         stars.pivot <- rbind(type.totals, sums) %>% 
-          mutate(Total = rowSums(.[3:6], na.rm = TRUE))
+          rename("Count of" = "Investigation Type") %>% 
+          mutate(Total = format(round(rowSums(.[3:6], na.rm = TRUE), 0), nsmall = 0))
     
   })
   
@@ -660,6 +659,28 @@ server <- function(input, output, session) {
                border.left = fp_border(color = "black"),
                border.right = fp_border(color = "black"), part = "all")
       
+        # stars flex ----
+      flextable_stars <- flextable(stars.pivots.df()) %>% 
+        add_header_lines(values = "STARS Status", top = TRUE) %>%
+        border_remove() %>% 
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>% 
+        align(part = "body", align = "center") %>% 
+        align(part = "header", align = "center") %>% 
+        align(j = 1, align = "left") %>% 
+        align(part = "header", j = 1, align = "left") %>% 
+        bold(bold = TRUE, part = "header") %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
+        bold( i = ~ `Count of` == "Total") %>% 
+        height(height = 0.23) %>% 
+        width(width = 0.85, j = 2:6) %>% 
+        width(width = 1.55, j = 1) %>% 
+        height(height = 0.6, part = "header", i = 2) %>% 
+        bg(bg = "light blue", part = "header") %>% 
+        bg(bg = "light blue", part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset))
+        
       example_pp <- read_pptx() %>% 
         add_slide(layout = "Title Slide", master = "Office Theme") %>% 
         ph_with_text(
@@ -672,8 +693,6 @@ server <- function(input, output, session) {
         ) %>% 
         
         # LMS slide ----
-      # paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y"))
-      
       add_slide(layout = "Title and Content", master = "Office Theme") %>% 
         ph_with(
           block_list(
@@ -729,6 +748,17 @@ server <- function(input, output, session) {
         ) %>% 
         ph_with_flextable(
           value = flextable_dq,
+          type = "body"
+        ) %>% 
+        
+        # stars slide ----
+      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+        ph_with_text(
+          type = "title",
+          str = paste("STARS Status - as of", format(Sys.Date(), format ="%m/%d/%Y")),
+        ) %>% 
+        ph_with_flextable(
+          value = flextable_stars,
           type = "body"
         )
       
