@@ -60,33 +60,33 @@ ui <- fluidPage(
     sidebarPanel(
       
       # LMS upload ----
-      h3("Attach LMS csv"),
+      h4("Attach LMS csv"),
       fileInput2("file3", "File location", labelIcon = "folder-open-o", 
                  accept = c(".csv"), progress = TRUE),
       
       # CBCS upload ----
-      h3("Attach CBCS Loss Run xlsx"),
+      h4("Attach CBCS Loss Run xlsx"),
       fileInput2("file2", "File location", labelIcon = "folder-open-o", 
                  accept = c(".xlsx"), progress = TRUE),
       
       # JJK upload ----
-      h3("Attach JJ Keller csv"),  
+      h4("Attach JJ Keller csv"),  
       fileInput2("file1", "File location", labelIcon = "folder-open-o", 
                  accept = c("text/csv",
                             "text/comma-separated-values,text/plain",
                             ".csv"), progress = TRUE),
       
       # STARS upload ----
-      h3("Attach STARS xlsx"),  
+      h4("Attach STARS xlsx"),  
       fileInput2("file4", "File location", labelIcon = "folder-open-o", 
                  accept = c(".xlsx"), progress = TRUE),
       
       # All territories or not ----
-      selectInput("allstate", label = h3("Entire territory?"),
+      selectInput("allstate", label = h4("Entire territory?"),
                   choices = list("NO", "YES")),
       
       # Territory selection ----
-      selectInput("manager", label = h3("Region"), 
+      selectInput("manager", label = h4("Region"), 
                   choices = list("TAMPA",
                                  "ORLANDO",
                                  "SOUTH FL",
@@ -97,7 +97,7 @@ ui <- fluidPage(
       
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
-                     label = h3("Input date range for weekly incident table"),
+                     label = h4("Input date range for weekly incident table"),
                      start = Sys.Date() - 6, end = Sys.Date()),
       
       # Download buttom ----
@@ -112,12 +112,12 @@ ui <- fluidPage(
       tabsetPanel(type = "tabs",
                   # General intro tab
                   tabPanel("Intro",
-                           h3(p("Download data from LMS, CBCS, JJ Keller, and STARS.", 
+                           h5(p("Download data from LMS, CBCS, JJ Keller, and STARS.", 
                                 span("Do not", style = "color:red"),
                                 "change any information in your raw data pulls. Upload the indicated data sources to the left.")),
-                           h3(p("Indicate 'YES' under 'Entire territory?' if you would like to see the entire CCBF system or 'NO' to display a specific region.")),
-                           h3(p("The date range will default to the past 7 days and will display CBCS results for this range unless otherwise specified.")),
-                           h3(p("Please report any errors, changes in vendors or data sources, or location shifts to Jason Richardson (jarichardson@cocacolaflorida.com).
+                           h5(p("Indicate 'YES' under 'Entire territory?' if you would like to see the entire CCBF system or 'NO' to display a specific region.")),
+                           h5(p("The date range will default to the past 7 days and will display CBCS results for this range unless otherwise specified.")),
+                           h5(p("Please report any errors, changes in vendors or data sources, or location shifts to Jason Richardson (jarichardson@cocacolaflorida.com).
                                "))
                   ),
                   
