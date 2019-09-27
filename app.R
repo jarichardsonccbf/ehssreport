@@ -122,17 +122,17 @@ ui <- fluidPage(
                   ),
                   
                   # LMS tab
-                  tabPanel("LMS", tableOutput(outputId = "lms.pivot")),
+                  tabPanel("LMS", uiOutput(outputId = "lms.pivot")),
                   
                   # Incident descriptions tab
-                  tabPanel("Weekly Safety Incidents", tableOutput(outputId = "weekly.cbcs.incidents")),
+                  tabPanel("Weekly Safety Incidents", uiOutput(outputId = "weekly.cbcs.incidents")),
                   
                   # Costs and Counts tab
-                  tabPanel("Claims Costs and Counts", tableOutput(outputId = "cost.pivot"),
-                           tableOutput(outputId = "count.pivot")),
+                  tabPanel("Claims Costs and Counts", uiOutput(outputId = "cost.pivot"),
+                           uiOutput(outputId = "count.pivot")),
                   
                   # JJ Keller tab
-                  tabPanel("JJ Keller",  tableOutput(outputId = "driver.qual.table"),
+                  tabPanel("JJ Keller",  uiOutput(outputId = "driver.qual.table"),
                            plotOutput(outputId = "jjk.compliance.pie"),
                            plotOutput(outputId = "jjk.driver.stats.pie")),
                   
@@ -280,8 +280,25 @@ server <- function(input, output, session) {
       )
   })
   
-  output$driver.qual.table <- renderTable({
-    jjk.qual.table()
+  output$driver.qual.table <- renderUI({
+    jjk.qual.table() %>% 
+      flextable() %>% 
+      border_remove() %>% 
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>% 
+      align(align = "center", part = "all") %>% 
+      align(align = "left", part = "body", j = 1) %>% 
+      bold(bold = TRUE, part = "body", i = nrow(flextable(jjk.qual.table())$body$dataset)) %>% 
+      bold(bold = TRUE, part = "header") %>% 
+      height(height = 0.74, part = "header") %>% 
+      height(height = 0.28, part = "body") %>% 
+      width(width = 1.4, j = 1) %>% 
+      width(width = 1.2, j = 2:4) %>% 
+      bg(bg = "dark red", part = "header") %>% 
+      color(color = "white", part = "header") %>% 
+      htmltools_value()
   })
   
   # CBCS weekly incidents ----
@@ -317,8 +334,20 @@ server <- function(input, output, session) {
       select(Location, Incident)
   })
   
-  output$weekly.cbcs.incidents <- renderTable({
-    weekly.incidents()
+  output$weekly.cbcs.incidents <- renderUI({
+    weekly.incidents() %>% 
+      flextable() %>% 
+      border_remove() %>% 
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>%
+      align(align = "left", part = "all") %>% 
+      height(part = "header", height = 0.33) %>%
+      height(part = "body", height = 1) %>% 
+      width(width = 1.81, j = 1) %>% 
+      width(width = 5.59, j = 2) %>% 
+      htmltools_value()
   })
   
   # DF for CBCS pivots ----
@@ -354,7 +383,7 @@ server <- function(input, output, session) {
   
   # Cost Pivot ----
   
-  cost.pivot.flex <- reactive({
+  cost.pivot <- reactive({
     costs <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
       mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
@@ -380,35 +409,30 @@ server <- function(input, output, session) {
       )
   })
   
-  output$cost.pivot <- renderTable({
-    costs <- cbcs.pivots.df() %>% 
-      group_by(`Loc Name`, Coverage) %>% 
-      mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
-      summarise(Incurred = sum(raw)) %>%
-      ungroup() %>% 
-      pivot_wider(names_from = Coverage, values_from = Incurred) %>%
-      rename(Location = `Loc Name`) %>% 
-      select(Location, Auto, GL, WC) %>% 
-      replace(., is.na(.), 0) %>% 
-      mutate(Total = rowSums(.[2:4]))
-    
-    costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
-    
-    colnames(costs.tot) <- colnames(costs)
-    
-    # claim cost table
-    claim.cost <- rbind(costs, costs.tot) %>% 
-      mutate(
-        WC = paste("$", round(WC, 0), sep = ""),
-        Auto = paste("$", round(Auto, 0), sep = ""),
-        GL = paste("$", round(GL, 0), sep = ""),
-        Total = paste("$", round(Total, 0), sep = "")
-      )
+  output$cost.pivot <- renderUI({
+    costs <- cost.pivot() %>% 
+      flextable() %>% 
+      add_header_lines(values = "Claim Cost", top = TRUE) %>% 
+      border_remove() %>% 
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>%
+      bold(bold = TRUE, part = "header") %>% 
+      align(align = "left", part = "all", j = 1) %>% 
+      align(align = "center", part = "header", j = 2:5) %>% 
+      bg(bg = "light blue", part = "header") %>% 
+      bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
+      bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
+      width(width = 1.48, j = 1) %>% 
+      width(width = 1, j = 2:4) %>% 
+      width(width = 1.14, j = 5) %>% 
+      htmltools_value()
   })
   
   # Count Pivot----
   
-  count.pivot.flex <- reactive({
+  count.pivot <- reactive({
     counts <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
       summarise (n = n()) %>% 
@@ -433,29 +457,25 @@ server <- function(input, output, session) {
       )
   })
   
-  output$count.pivot <- renderTable({
-    counts <- cbcs.pivots.df() %>% 
-      group_by(`Loc Name`, Coverage) %>% 
-      summarise (n = n()) %>% 
-      pivot_wider(names_from = Coverage, values_from = n) %>% 
-      rename(Location = `Loc Name`) %>%
-      select(Location, Auto, GL, WC) %>% 
-      replace(., is.na(.), 0) %>% 
-      mutate(Total = sum(Auto, GL, WC)) %>% 
-      ungroup()
-    
-    counts.tot <- data.frame("Total", sum(counts$Auto), sum(counts$GL), sum(counts$WC), sum(counts$Total))
-    
-    colnames(counts.tot) <- colnames(counts)
-    
-    # claim count table
-    claim.count <- rbind(counts,counts.tot) %>% 
-      mutate(
-        WC = format(round(WC, 0), nsmall = 0),
-        Auto = format(round(Auto, 0), nsmall = 0),
-        GL = format(round(GL, 0), nsmall = 0),
-        Total = format(round(Total, 0), nsmall = 0)
-      )
+  output$count.pivot <- renderUI({
+    counts <- count.pivot() %>% 
+      flextable() %>% 
+      add_header_lines(values = "Claim Count", top = TRUE) %>% 
+      border_remove() %>% 
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>%
+      bold(bold = TRUE, part = "header") %>% 
+      align(align = "left", part = "all", j = 1) %>% 
+      align(align = "center", part = "header", j = 2:5) %>% 
+      bg(bg = "light blue", part = "header") %>% 
+      bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
+      bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
+      width(width = 1.48, j = 1) %>% 
+      width(width = 1, j = 2:4) %>% 
+      width(width = 1.14, j = 5) %>% 
+      htmltools_value()
   })
   
   # LMS Pivot ----
@@ -514,55 +534,76 @@ server <- function(input, output, session) {
         left_join(stars.locations, by = "Location") %>% 
         filter(manager == input$manager)
     
-      stars.b <- stars.a %>%
-        mutate(year = year(`Creation Date`),
-               `Investigation Type` = recode(`Investigation Type`,
-                                             "Vehicle Incident Template" = "Vehicle",
-                                             "Non-Vehicle Incident Template" = "Non-Vehicle"),
-               `Status` = recode(`Status`,
-                                 "Complete - Nonpreventable" = "Complete NP",
-                                 "Complete - Preventable" = "Complete P")) %>% 
-          filter(Status != "Error Creating",
-                 Status != "Scheduled for Create",
-                 year == year(Sys.Date())) %>% 
-          droplevels()
-        
-        type <- stars.b %>% 
-          group_by(Location, Status, `Investigation Type`) %>% 
-          summarise (n = n()) %>% 
-          pivot_wider(names_from = Status, values_from = n)
-        
-        totals <- stars.b %>% 
-          group_by(Location, Status) %>% 
-          summarise(n = n()) %>% 
-          pivot_wider(names_from = Status, values_from = n) %>% 
-          mutate(`Investigation Type` = "A")
-        
-        type.totals <- rbind(type, totals) %>%
-          arrange(Location,
-                  `Investigation Type`) %>% 
-          mutate(`Investigation Type` = recode(`Investigation Type`,
-                                               "A" = "Total")) %>% 
-          ungroup()
-        
-        sums <- stars.b %>% 
-          group_by(Status) %>% 
-          summarise(n = n()) %>% 
-          pivot_wider(names_from = Status, values_from = n) %>% 
-          mutate(Total = "Total",
-                 empty = NA) %>% ungroup() %>% 
-          select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
-        
-        colnames(sums) <- colnames(type.totals)
-        
-        stars.pivot <- rbind(type.totals, sums) %>% 
-          rename("Count of" = "Investigation Type") %>% 
-          mutate(Total = format(round(rowSums(.[3:6], na.rm = TRUE), 0), nsmall = 0))
+    stars.b <- stars.a %>%
+      mutate(year = year(`Creation Date`),
+             `Investigation Type` = recode(`Investigation Type`,
+                                           "Vehicle Incident Template" = "Vehicle",
+                                           "Non-Vehicle Incident Template" = "Non-Vehicle"),
+             `Status` = recode(`Status`,
+                               "Complete - Nonpreventable" = "Complete NP",
+                               "Complete - Preventable" = "Complete P")) %>% 
+      filter(Status != "Error Creating",
+             Status != "Scheduled for Create",
+             year == year(Sys.Date())) %>% 
+      droplevels()
+    
+    type <- stars.b %>% 
+      group_by(Location, Status, `Investigation Type`) %>% 
+      summarise (n = n()) %>% 
+      pivot_wider(names_from = Status, values_from = n)
+    
+    totals <- stars.b %>% 
+      group_by(Location, Status) %>% 
+      summarise(n = n()) %>% 
+      pivot_wider(names_from = Status, values_from = n) %>% 
+      mutate(`Investigation Type` = "A")
+    
+    type.totals <- rbind(type, totals) %>%
+      arrange(Location,
+              `Investigation Type`) %>% 
+      mutate(`Investigation Type` = recode(`Investigation Type`,
+                                           "A" = "Total")) %>% 
+      ungroup()
+    
+    sums <- stars.b %>% 
+      group_by(Status) %>% 
+      summarise(n = n()) %>% 
+      pivot_wider(names_from = Status, values_from = n) %>% 
+      mutate(Total = "Total",
+             empty = NA) %>% ungroup() %>% 
+      select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
+    
+    colnames(sums) <- colnames(type.totals)
+    
+    stars.pivot <- rbind(type.totals, sums) %>% 
+      rename("Count of" = "Investigation Type") %>% 
+      mutate(Total = format(round(rowSums(.[3:6], na.rm = TRUE), 0), nsmall = 0))
     
   })
   
-  output$stars.status <- renderTable({
-    stars.pivots.df()
+  output$stars.status <- renderUI({
+    stars.pivots.df() %>% 
+      flextable() %>% 
+      add_header_lines(values = "STARS Status", top = TRUE) %>%
+      border_remove() %>% 
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>% 
+      align(part = "body", align = "center") %>% 
+      align(part = "header", align = "center") %>% 
+      align(j = 1, align = "left") %>% 
+      align(part = "header", j = 1, align = "left") %>% 
+      bold(bold = TRUE, part = "header") %>% 
+      bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
+      bold( i = ~ `Count of` == "Total") %>% 
+      height(height = 0.23) %>% 
+      width(width = 0.85, j = 2:6) %>% 
+      width(width = 1.55, j = 1) %>% 
+      height(height = 0.6, part = "header", i = 2) %>% 
+      bg(bg = "light blue", part = "header") %>% 
+      bg(bg = "light blue", part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
+      htmltools_value()
   })   
   
   # PPT ----
@@ -605,7 +646,7 @@ server <- function(input, output, session) {
         width(width = 5.59, j = 2)
       
       # cbcs cost flex ----
-      flextable_cbcs.cost <- flextable(cost.pivot.flex()) %>% 
+      flextable_cbcs.cost <- flextable(cost.pivot()) %>% 
         add_header_lines(values = "Claim Cost", top = TRUE) %>% 
         border_remove() %>% 
         border(border.top = fp_border(color = "black"),
@@ -616,14 +657,14 @@ server <- function(input, output, session) {
         align(align = "left", part = "all", j = 1) %>% 
         align(align = "center", part = "header", j = 2:5) %>% 
         bg(bg = "light blue", part = "header") %>% 
-        bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot.flex())$body$dataset)) %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot.flex())$body$dataset)) %>% 
+        bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
         width(width = 1.48, j = 1) %>% 
         width(width = 1, j = 2:4) %>% 
         width(width = 1.14, j = 5)
       
       # cbcs count flex ----
-      flextable_cbcs.count <- flextable(count.pivot.flex()) %>% 
+      flextable_cbcs.count <- flextable(count.pivot()) %>% 
         add_header_lines(values = "Claim Count", top = TRUE) %>% 
         border_remove() %>% 
         border(border.top = fp_border(color = "black"),
@@ -634,8 +675,8 @@ server <- function(input, output, session) {
         align(align = "left", part = "all", j = 1) %>% 
         align(align = "center", part = "header", j = 2:5) %>% 
         bg(bg = "light blue", part = "header") %>% 
-        bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot.flex())$body$dataset)) %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot.flex())$body$dataset)) %>% 
+        bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
+        bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
         width(width = 1.48, j = 1) %>% 
         width(width = 1, j = 2:4) %>% 
         width(width = 1.14, j = 5)
@@ -659,7 +700,7 @@ server <- function(input, output, session) {
                border.left = fp_border(color = "black"),
                border.right = fp_border(color = "black"), part = "all")
       
-        # stars flex ----
+      # stars flex ----
       flextable_stars <- flextable(stars.pivots.df()) %>% 
         add_header_lines(values = "STARS Status", top = TRUE) %>%
         border_remove() %>% 
@@ -680,7 +721,7 @@ server <- function(input, output, session) {
         height(height = 0.6, part = "header", i = 2) %>% 
         bg(bg = "light blue", part = "header") %>% 
         bg(bg = "light blue", part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset))
-        
+      
       example_pp <- read_pptx() %>% 
         add_slide(layout = "Title Slide", master = "Office Theme") %>% 
         ph_with_text(
