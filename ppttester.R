@@ -1,30 +1,16 @@
-example_pp <- read_pptx() %>% 
-  add_slide(layout = "Title Slide", master = "Office Theme") %>% 
-  ph_with_text(
-    type = "ctrTitle",
-    str = "Weekly P3 Deck"
-  ) %>% 
-  ph_with(
-    location = ph_location_type(type = "subTitle"),
-    value = "Copy and paste the generated tables into your report"
-  ) %>% 
-  
-  # LMS slide ----
-# paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y"))
+library(officer)
 
-add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-  ph_with(
-    block_list(
-      fpar(fp_p = fp_par(text.align = "center"),
-        ftext(
-          "test", 
-          prop = fp_text(font.size = 28)
-             )
-          )
-              ),
-          location = ph_location_type(type = "title")
-        )
+source("lms.R")
+rm(cbcs.locations, jjkeller.locations, lms, lms.locations, lms.pivots.df, stars.locations)
 
-example_pp
+example_pp <- read_pptx("2019 Weekly Safety P3 Deck - 092719.pptx")
 
-print(example_pp, target = "filehsstest.pptx")
+slide7.structure <- slide_summary(example_pp, 7)
+
+slide2.content <- pptx_summary(example_pp) %>% 
+  filter(slide_id == 2)
+
+example_pp <- example_pp %>% ph_remove(id = 3, type = "body")
+
+
+print(example_pp, target = "filehsstest2.pptx")

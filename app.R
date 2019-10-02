@@ -92,8 +92,7 @@ ui <- fluidPage(
                                  "SOUTH FL",
                                  "JACKSONVILLE",
                                  "TAMPA",
-                                 "FT MYERS - BROWARD", 
-                                 "PLACEHOLDER")),
+                                 "FT MYERS - BROWARD")),
       
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
@@ -610,117 +609,135 @@ server <- function(input, output, session) {
   
   output$download_powerpoint <- downloadHandler(
     filename = function() {  
-      "EHSStest.pptx"
+      "P3Weekly_Summary_Deck_LOC_MMDDYY.pptx"
     },
     content = function(file) {
       
       # jjk flex ----
-      flextable_dq <- flextable(jjk.qual.table()) %>% 
-        border_remove() %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>% 
-        align(align = "center", part = "all") %>% 
-        align(align = "left", part = "body", j = 1) %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(jjk.qual.table())$body$dataset)) %>% 
-        bold(bold = TRUE, part = "header") %>% 
-        height(height = 0.74, part = "header") %>% 
-        height(height = 0.28, part = "body") %>% 
-        width(width = 1.4, j = 1) %>% 
-        width(width = 1.2, j = 2:4) %>% 
-        bg(bg = "dark red", part = "header") %>% 
-        color(color = "white", part = "header")
+      if (exists("file1")) { 
+        
+        flextable_dq <- flextable(jjk.qual.table()) %>% 
+          border_remove() %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all") %>% 
+          align(align = "center", part = "all") %>% 
+          align(align = "left", part = "body", j = 1) %>% 
+          bold(bold = TRUE, part = "body", i = nrow(flextable(jjk.qual.table())$body$dataset)) %>% 
+          bold(bold = TRUE, part = "header") %>% 
+          height(height = 0.74, part = "header") %>% 
+          height(height = 0.28, part = "body") %>% 
+          width(width = 1.4, j = 1) %>% 
+          width(width = 1.2, j = 2:4) %>% 
+          bg(bg = "dark red", part = "header") %>% 
+          color(color = "white", part = "header")
+      }
       
       # cbcs incidents flex ----
-      flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
-        border_remove() %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>%
-        align(align = "left", part = "all") %>% 
-        height(part = "header", height = 0.33) %>%
-        height(part = "body", height = 1) %>% 
-        width(width = 1.81, j = 1) %>% 
-        width(width = 5.59, j = 2)
+      if (exists("file2")) { 
+        
+        flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
+          border_remove() %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all") %>%
+          align(align = "left", part = "all") %>% 
+          height(part = "header", height = 0.33) %>%
+          height(part = "body", height = 1) %>% 
+          width(width = 1.81, j = 1) %>% 
+          width(width = 5.59, j = 2)
+      }
       
       # cbcs cost flex ----
-      flextable_cbcs.cost <- flextable(cost.pivot()) %>% 
-        add_header_lines(values = "Claim Cost", top = TRUE) %>% 
-        border_remove() %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>%
-        bold(bold = TRUE, part = "header") %>% 
-        align(align = "left", part = "all", j = 1) %>% 
-        align(align = "center", part = "header", j = 2:5) %>% 
-        bg(bg = "light blue", part = "header") %>% 
-        bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
-        width(width = 1.48, j = 1) %>% 
-        width(width = 1, j = 2:4) %>% 
-        width(width = 1.14, j = 5)
+      if (exists("file2")) { 
+        
+        flextable_cbcs.cost <- flextable(cost.pivot()) %>% 
+          add_header_lines(values = "Claim Cost", top = TRUE) %>% 
+          border_remove() %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all") %>%
+          bold(bold = TRUE, part = "header") %>% 
+          align(align = "left", part = "all", j = 1) %>% 
+          align(align = "center", part = "header", j = 2:5) %>% 
+          bg(bg = "light blue", part = "header") %>% 
+          bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
+          bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
+          width(width = 1.48, j = 1) %>% 
+          width(width = 1, j = 2:4) %>% 
+          width(width = 1.14, j = 5)
+      }
       
       # cbcs count flex ----
-      flextable_cbcs.count <- flextable(count.pivot()) %>% 
-        add_header_lines(values = "Claim Count", top = TRUE) %>% 
-        border_remove() %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>%
-        bold(bold = TRUE, part = "header") %>% 
-        align(align = "left", part = "all", j = 1) %>% 
-        align(align = "center", part = "header", j = 2:5) %>% 
-        bg(bg = "light blue", part = "header") %>% 
-        bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
-        width(width = 1.48, j = 1) %>% 
-        width(width = 1, j = 2:4) %>% 
-        width(width = 1.14, j = 5)
+      if (exists("file2")) { 
+        
+        flextable_cbcs.count <- flextable(count.pivot()) %>% 
+          add_header_lines(values = "Claim Count", top = TRUE) %>% 
+          border_remove() %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all") %>%
+          bold(bold = TRUE, part = "header") %>% 
+          align(align = "left", part = "all", j = 1) %>% 
+          align(align = "center", part = "header", j = 2:5) %>% 
+          bg(bg = "light blue", part = "header") %>% 
+          bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
+          bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
+          width(width = 1.48, j = 1) %>% 
+          width(width = 1, j = 2:4) %>% 
+          width(width = 1.14, j = 5)
+      }
       
       # lms flex ----
-      flextable_lms <- flextable(lms.pivots.df()) %>% 
-        border_remove() %>% 
-        rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
-        align(j = 1, part = "header") %>% 
-        align(j = 1, align = "left") %>%
-        align(align = "center", part = "header") %>% 
-        add_header_lines(values = paste("EHSS Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>% 
-        height(part = "header", height = 2.28) %>%  
-        width(width = 1.35, j = 1) %>% 
-        width(width = 0.71, j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
-        bg(bg = "light blue", part = "header") %>% 
-        height(height = 0.3, part = "header", i = 1) %>% 
-        bold(bold = TRUE, part = "header") %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all")
+      if (exists("file3")) { 
+        
+        flextable_lms <- flextable(lms.pivots.df()) %>% 
+          border_remove() %>% 
+          rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
+          align(j = 1, part = "header") %>% 
+          align(j = 1, align = "left") %>%
+          align(align = "center", part = "header") %>% 
+          add_header_lines(values = paste("EHSS Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>% 
+          height(part = "header", height = 2.28) %>%  
+          width(width = 1.35, j = 1) %>% 
+          width(width = 0.71, j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
+          bg(bg = "light blue", part = "header") %>% 
+          height(height = 0.3, part = "header", i = 1) %>% 
+          bold(bold = TRUE, part = "header") %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all")
+      }
       
       # stars flex ----
-      flextable_stars <- flextable(stars.pivots.df()) %>% 
-        add_header_lines(values = "STARS Status", top = TRUE) %>%
-        border_remove() %>% 
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>% 
-        align(part = "body", align = "center") %>% 
-        align(part = "header", align = "center") %>% 
-        align(j = 1, align = "left") %>% 
-        align(part = "header", j = 1, align = "left") %>% 
-        bold(bold = TRUE, part = "header") %>% 
-        bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
-        bold( i = ~ `Count of` == "Total") %>% 
-        height(height = 0.23) %>% 
-        width(width = 0.85, j = 2:6) %>% 
-        width(width = 1.55, j = 1) %>% 
-        height(height = 0.6, part = "header", i = 2) %>% 
-        bg(bg = "light blue", part = "header") %>% 
-        bg(bg = "light blue", part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset))
+      if (exists("file4")) { 
+        
+        flextable_stars <- flextable(stars.pivots.df()) %>% 
+          add_header_lines(values = "STARS Status", top = TRUE) %>%
+          border_remove() %>% 
+          border(border.top = fp_border(color = "black"),
+                 border.bottom = fp_border(color = "black"),
+                 border.left = fp_border(color = "black"),
+                 border.right = fp_border(color = "black"), part = "all") %>% 
+          align(part = "body", align = "center") %>% 
+          align(part = "header", align = "center") %>% 
+          align(j = 1, align = "left") %>% 
+          align(part = "header", j = 1, align = "left") %>% 
+          bold(bold = TRUE, part = "header") %>% 
+          bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
+          bold( i = ~ `Count of` == "Total") %>% 
+          height(height = 0.23) %>% 
+          width(width = 0.85, j = 2:6) %>% 
+          width(width = 1.55, j = 1) %>% 
+          height(height = 0.6, part = "header", i = 2) %>% 
+          bg(bg = "light blue", part = "header") %>% 
+          bg(bg = "light blue", part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset))
+      }
       
       example_pp <- read_pptx() %>% 
         add_slide(layout = "Title Slide", master = "Office Theme") %>% 
@@ -731,77 +748,90 @@ server <- function(input, output, session) {
         ph_with(
           location = ph_location_type(type = "subTitle"),
           value = "Copy and paste the generated tables into your report"
-        ) %>% 
+        ) 
+      
+      # LMS slide ----
+      if (exists("flextable_lms")) { 
         
-        # LMS slide ----
-      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with(
-          block_list(
-            fpar(fp_p = fp_par(text.align = "center"),
-                 ftext(paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y")), 
-                       prop = fp_text(font.size = 28)
-                 )
-            )
-          ),
-          location = ph_location_type(type = "title")) %>% 
-        ph_with_flextable(
-          value = flextable_lms,
-          type = "body"
-        ) %>% 
+        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with(
+            block_list(
+              fpar(fp_p = fp_par(text.align = "center"),
+                   ftext(paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y")), 
+                         prop = fp_text(font.size = 28)
+                   )
+              )
+            ),
+            location = ph_location_type(type = "title")) %>% 
+          ph_with_flextable(
+            value = flextable_lms,
+            type = "body"
+          )
+      }
+      
+      # Safety incidents slide ----
+      if (exists("flextable_cbcs.inc")) { 
         
-        # Safety incidents slide ----
-      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = "Safety - Incidents this week"
-        ) %>% 
-        ph_with_flextable(
-          value = flextable_cbcs.inc,
-          type = "body"
-        ) %>% 
+        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with_text(
+            type = "title",
+            str = "Safety - Incidents this week"
+          ) %>% 
+          ph_with_flextable(
+            value = flextable_cbcs.inc,
+            type = "body"
+          ) 
+      }
+      
+      # Claim cost/count slides (collapse to only one slide) ----
+      if (exists("flextable_cbcs.count") & exists("flextable_cbcs.cost")) { 
         
-        # Claim cost/count slides (collapse to only one slide) ----
-      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
-        ) %>% 
-        ph_with_flextable(
-          value = flextable_cbcs.count,
-          type = "body"
-        ) %>% 
+        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with_text(
+            type = "title",
+            str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
+          ) %>% 
+          ph_with_flextable(
+            value = flextable_cbcs.count,
+            type = "body"
+          ) %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with_text(
+            type = "title",
+            str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
+          ) %>% 
+          ph_with_flextable(
+            value = flextable_cbcs.cost,
+            type = "body"
+          )
+      }
+      
+      # Driver qual slide ----
+      if (exists("flextable_dq")) {
         
-        add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
-        ) %>% 
-        ph_with_flextable(
-          value = flextable_cbcs.cost,
-          type = "body"
-        ) %>% 
+        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with_text(
+            type = "title",
+            str = "Driver Qualification File Compliance Status",
+          ) %>% 
+          ph_with_flextable(
+            value = flextable_dq,
+            type = "body"
+          ) 
+      }
+      
+      # stars slide ----
+      if (exists("flextable_stars")) {
         
-        # Driver qual slide ----
-      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = "Driver Qualification File Compliance Status",
-        ) %>% 
-        ph_with_flextable(
-          value = flextable_dq,
-          type = "body"
-        ) %>% 
-        
-        # stars slide ----
-      add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-        ph_with_text(
-          type = "title",
-          str = paste("STARS Status - as of", format(Sys.Date(), format ="%m/%d/%Y")),
-        ) %>% 
-        ph_with_flextable(
-          value = flextable_stars,
-          type = "body"
-        )
+        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with_text(
+            type = "title",
+            str = paste("STARS Status - as of", format(Sys.Date(), format ="%m/%d/%Y")),
+          ) %>% 
+          ph_with_flextable(
+            value = flextable_stars,
+            type = "body"
+          )
+      }
       
       print(example_pp, target = file)
     }
