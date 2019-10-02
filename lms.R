@@ -1,13 +1,14 @@
 library(tidyverse)
+library(flextable)
 
 source("locations2.R")
 
-lms <- read.csv("data/andreaLMS.csv")
+lms <- read.csv("data/tampalms.csv")
   
 lms.pivots.df <- lms %>% 
   left_join(lms.locations, "Org.Name") %>% 
 # play with inner joining this then filtering on ft myers broward  
-  filter(manager == "FT MYERS _ BROWARD") %>% 
+  filter(manager == "TAMPA") %>% 
   mutate(Item.Status = recode(Item.Status,
                               "In Progress" = "Incomplete",
                               "Not Started" = "Incomplete"),
@@ -40,3 +41,5 @@ flextable_lms <- flextable(lms.pivots.df) %>%
          border.bottom = fp_border(color = "black"),
          border.left = fp_border(color = "black"),
          border.right = fp_border(color = "black"), part = "all")
+
+flextable_lms

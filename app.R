@@ -92,8 +92,7 @@ ui <- fluidPage(
                                  "SOUTH FL",
                                  "JACKSONVILLE",
                                  "TAMPA",
-                                 "FT MYERS - BROWARD", 
-                                 "PLACEHOLDER")),
+                                 "FT MYERS - BROWARD")),
       
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
@@ -610,7 +609,7 @@ server <- function(input, output, session) {
   
   output$download_powerpoint <- downloadHandler(
     filename = function() {  
-      "EHSStest.pptx"
+      "P3Weekly_Summary_Deck_LOC_MMDDYY.pptx"
     },
     content = function(file) {
       
