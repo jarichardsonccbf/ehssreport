@@ -1,9 +1,10 @@
 library(tidyverse)
 library(flextable)
+library(officer)
 
 source("locations2.R")
 
-lms <- read.csv("data/tampalms.csv")
+lms <- read.csv("data/browardLMS.csv")
   
 lms.pivots.df <- lms %>% 
   left_join(lms.locations, "Org.Name") %>% 
@@ -43,3 +44,44 @@ flextable_lms <- flextable(lms.pivots.df) %>%
          border.right = fp_border(color = "black"), part = "all")
 
 flextable_lms
+
+
+
+
+lms.pivots.andrea.df <- lms %>% 
+  left_join(lms.locations, "Org.Name") %>% 
+  # play with inner joining this then filtering on ft myers broward  
+  filter(manager == "FT MYERS - BROWARD") %>% 
+  group_by(location, Title, Item.Status) %>%
+  summarise(n = length(Item.Status)) %>% 
+  ungroup %>% group_by(location, Title) %>% 
+  mutate(percent.compliant = n / sum(n) * 100) %>% 
+  mutate(percent.compliant = round(percent.compliant, digits = 0),
+         percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  select(-c(n)) %>% 
+  pivot_wider(names_from = Title, values_from = percent.compliant)
+
+lms.pivots.andrea.df
+
+
+flextable_lms.andrea <- flextable(lms.pivots.andrea.df) %>% 
+  border_remove() %>% 
+  rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lms.pivots.andrea.df)$col_keys)) %>% 
+  align(j = 1, part = "header") %>% 
+  align(j = 1, align = "left") %>%
+  align(align = "center", part = "header") %>% 
+  add_header_lines(values = paste("EHSS Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>% 
+  height(part = "header", height = 2.28) %>%  
+  width(width = 1.35, j = 1) %>% 
+  width(width = 0.71, j = 2:length(flextable(lms.pivots.andrea.df)$col_keys)) %>% 
+  bg(bg = "light blue", part = "header") %>% 
+  height(height = 0.3, part = "header", i = 1) %>% 
+  bold(bold = TRUE, part = "header") %>% 
+  border(border.top = fp_border(color = "black"),
+         border.bottom = fp_border(color = "black"),
+         border.left = fp_border(color = "black"),
+         border.right = fp_border(color = "black"), part = "all")
+
+flextable_lms.andrea
+
+
