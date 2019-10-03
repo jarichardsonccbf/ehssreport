@@ -641,7 +641,7 @@ server <- function(input, output, session) {
     content = function(file) {
       
       # jjk flex ----
-      if (exists("file1")) { 
+      if (exists("jjk.qual.table")) { 
         
         flextable_dq <- flextable(jjk.qual.table()) %>% 
           border_remove() %>% 
@@ -662,7 +662,7 @@ server <- function(input, output, session) {
       }
       
       # cbcs incidents flex ----
-      if (exists("file2")) { 
+      if (exists("weekly.incidents")) { 
         
         flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
           border_remove() %>% 
@@ -678,7 +678,7 @@ server <- function(input, output, session) {
       }
       
       # cbcs cost flex ----
-      if (exists("file2")) { 
+      if (exists("cost.pivot")) { 
         
         flextable_cbcs.cost <- flextable(cost.pivot()) %>% 
           add_header_lines(values = "Claim Cost", top = TRUE) %>% 
@@ -699,7 +699,7 @@ server <- function(input, output, session) {
       }
       
       # cbcs count flex ----
-      if (exists("file2")) { 
+      if (exists("count.pivot")) { 
         
         flextable_cbcs.count <- flextable(count.pivot()) %>% 
           add_header_lines(values = "Claim Count", top = TRUE) %>% 
@@ -720,7 +720,7 @@ server <- function(input, output, session) {
       }
       
       # lms flex ----
-      if (exists("file3")) { 
+      if (exists("lms.pivots.df")) { 
         
         flextable_lms <- flextable(lms.pivots.df()) %>% 
           border_remove() %>% 
@@ -742,7 +742,7 @@ server <- function(input, output, session) {
       }
       
       # stars flex ----
-      if (exists("file4")) { 
+      if (exists("stars.pivots.df")) { 
         
         flextable_stars <- flextable(stars.pivots.df()) %>% 
           add_header_lines(values = "STARS Status", top = TRUE) %>%
