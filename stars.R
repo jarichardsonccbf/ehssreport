@@ -3,8 +3,10 @@ library(readxl)
 library(lubridate)
 
 source("locations2.R")
+rm(cbcs.locations, jjkeller.locations, lms.locations)
 
-stars.df <- read_excel("data/STARS.xlsx") %>% 
+# stars.df <- read_excel("data/andrea10-4test/Stars.xlsx") %>% 
+stars.df <- read_excel("data/andrea10-4test/Stars.xlsx") %>% 
   rename(Location = `Location Name`) %>% 
   left_join(stars.locations, by = "Location") %>%  
   mutate(year = year(`Creation Date`),
@@ -13,11 +15,17 @@ stars.df <- read_excel("data/STARS.xlsx") %>%
                                        "Non-Vehicle Incident Template" = "Non-Vehicle"),
          `Status` = recode(`Status`,
                            "Complete - Nonpreventable" = "Complete NP",
-                           "Complete - Preventable" = "Complete P")) %>% 
+                           "Complete - Preventable" = "Complete P",
+                           "Complete - Non-preventable" = "Complete NP")) %>% 
   filter(Status != "Error Creating",
          Status != "Scheduled for Create",
          year == year(Sys.Date())) %>% 
   droplevels()
+
+stars.df$Status
+
+
+rm(stars.locations)
 
 type <- stars.df %>% 
   group_by(Location, Status, `Investigation Type`) %>% 

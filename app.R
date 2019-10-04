@@ -99,7 +99,7 @@ ui <- fluidPage(
                      label = h4("Input date range for weekly incident table"),
                      start = Sys.Date() - 6, end = Sys.Date()),
       
-      # Download buttom ----
+      # Download button ----
       downloadButton("download_powerpoint", "Download Tables to Powerpoint")
       
     ),
@@ -567,7 +567,8 @@ server <- function(input, output, session) {
                                            "Non-Vehicle Incident Template" = "Non-Vehicle"),
              `Status` = recode(`Status`,
                                "Complete - Nonpreventable" = "Complete NP",
-                               "Complete - Preventable" = "Complete P")) %>% 
+                               "Complete - Preventable" = "Complete P",
+                               "Complete - Non-preventable" = "Complete NP")) %>% 
       filter(Status != "Error Creating",
              Status != "Scheduled for Create",
              year == year(Sys.Date())) %>% 

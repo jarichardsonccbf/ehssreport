@@ -59,6 +59,8 @@ lms.pivots.andrea.df <- lms %>%
   mutate(percent.compliant = round(percent.compliant, digits = 0),
          percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
   select(-c(n)) %>% 
+  rename(`Status` = Item.Status,
+         Location = location) %>% 
   pivot_wider(names_from = Title, values_from = percent.compliant)
 
 lms.pivots.andrea.df
@@ -66,7 +68,7 @@ lms.pivots.andrea.df
 
 flextable_lms.andrea <- flextable(lms.pivots.andrea.df) %>% 
   border_remove() %>% 
-  rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lms.pivots.andrea.df)$col_keys)) %>% 
+  rotate(rotation = "btlr", align = "center", part = "header", j = 3:length(flextable(lms.pivots.andrea.df)$col_keys)) %>% 
   align(j = 1, part = "header") %>% 
   align(j = 1, align = "left") %>%
   align(align = "center", part = "header") %>% 
@@ -81,7 +83,5 @@ flextable_lms.andrea <- flextable(lms.pivots.andrea.df) %>%
          border.bottom = fp_border(color = "black"),
          border.left = fp_border(color = "black"),
          border.right = fp_border(color = "black"), part = "all")
-
+  
 flextable_lms.andrea
-
-
