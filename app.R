@@ -642,7 +642,11 @@ server <- function(input, output, session) {
     content = function(file) {
       
       # jjk flex ----
-      if (exists("jjk.qual.table")) { 
+      if (is.null(input$file1)) {
+        
+        NULL
+        
+      } else {
         
         flextable_dq <- flextable(jjk.qual.table()) %>% 
           border_remove() %>% 
@@ -663,7 +667,11 @@ server <- function(input, output, session) {
       }
       
       # cbcs incidents flex ----
-      if (exists("weekly.incidents")) { 
+      if (is.null(input$file2)) {
+        
+        NULL
+        
+      } else {
         
         flextable_cbcs.inc <- flextable(weekly.incidents()) %>% 
           border_remove() %>% 
@@ -673,13 +681,17 @@ server <- function(input, output, session) {
                  border.right = fp_border(color = "black"), part = "all") %>%
           align(align = "left", part = "all") %>% 
           height(part = "header", height = 0.33) %>%
-          height(part = "body", height = 1) %>% 
+          height(part = "body", height = 0.55) %>% 
           width(width = 1.81, j = 1) %>% 
           width(width = 5.59, j = 2)
       }
       
       # cbcs cost flex ----
-      if (exists("cost.pivot")) { 
+      if (is.null(input$file2)) {
+        
+        NULL
+        
+      } else { 
         
         flextable_cbcs.cost <- flextable(cost.pivot()) %>% 
           add_header_lines(values = "Claim Cost", top = TRUE) %>% 
@@ -700,7 +712,11 @@ server <- function(input, output, session) {
       }
       
       # cbcs count flex ----
-      if (exists("count.pivot")) { 
+      if (is.null(input$file2)) {
+        
+        NULL
+        
+      } else { 
         
         flextable_cbcs.count <- flextable(count.pivot()) %>% 
           add_header_lines(values = "Claim Count", top = TRUE) %>% 
@@ -721,7 +737,11 @@ server <- function(input, output, session) {
       }
       
       # lms flex ----
-      if (exists("lms.pivots.df")) { 
+      if (is.null(input$file3)) {
+        
+        NULL
+        
+      } else {
         
         flextable_lms <- flextable(lms.pivots.df()) %>% 
           border_remove() %>% 
@@ -743,7 +763,11 @@ server <- function(input, output, session) {
       }
       
       # stars flex ----
-      if (exists("stars.pivots.df")) { 
+      if (is.null(input$file4)) {
+        
+        NULL
+        
+      } else {
         
         flextable_stars <- flextable(stars.pivots.df()) %>% 
           add_header_lines(values = "STARS Status", top = TRUE) %>%
@@ -815,22 +839,20 @@ server <- function(input, output, session) {
       if (exists("flextable_cbcs.count") & exists("flextable_cbcs.cost")) { 
         
         example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-          ph_with_text(
-            type = "title",
-            str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
-          ) %>% 
+          ph_with(
+            block_list(
+              fpar(fp_p = fp_par(text.align = "center"),
+                   ftext(paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y")), 
+                         prop = fp_text(font.size = 20)
+                   )
+              )
+            ),
+            location = ph_location_type(type = "title")) %>% 
           ph_with_flextable(
             value = flextable_cbcs.count,
             type = "body"
-          ) %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-          ph_with_text(
-            type = "title",
-            str = paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
-          ) %>% 
-          ph_with_flextable(
-            value = flextable_cbcs.cost,
-            type = "body"
           )
+
       }
       
       # Driver qual slide ----
@@ -851,14 +873,20 @@ server <- function(input, output, session) {
       if (exists("flextable_stars")) {
         
         example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
-          ph_with_text(
-            type = "title",
-            str = paste("STARS Status - as of", format(Sys.Date(), format ="%m/%d/%Y")),
-          ) %>% 
+          ph_with(
+            block_list(
+              fpar(fp_p = fp_par(text.align = "center"),
+                   ftext(paste("STARS Status - as of", format(Sys.Date(), format ="%m/%d/%Y")), 
+                         prop = fp_text(font.size = 20)
+                   )
+              )
+            ),
+            location = ph_location_type(type = "title")) %>% 
           ph_with_flextable(
             value = flextable_stars,
             type = "body"
           )
+        
       }
       
       print(example_pp, target = file)
