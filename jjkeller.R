@@ -2,7 +2,7 @@ library(tidyverse)
 library(janitor)
 library(scales)
 
-source("data/locations.R")
+source("locations2.R")
 
 JjkGraphs <- function(territory) {
 
@@ -128,4 +128,21 @@ return(list(dq.table, dq.pie, dq.stats))
 
 }
 
-JjkGraphs("TAMPA")
+
+
+flextable_jjk <- flextable(JjkGraphs("TAMPA")[[1]]) %>% 
+   border_remove() %>% 
+   border(border.top = fp_border(color = "black"),
+          border.bottom = fp_border(color = "black"),
+          border.left = fp_border(color = "black"),
+          border.right = fp_border(color = "black"), part = "all") %>% 
+   align(align = "center", part = "all") %>% 
+   align(align = "left", part = "body", j = 1) %>% 
+   bold(bold = TRUE, part = "body", i = nrow(JjkGraphs("TAMPA")[[1]])) %>% 
+   bold(bold = TRUE, part = "header") %>% 
+   height(height = 0.74, part = "header") %>% 
+   height(height = 0.28, part = "body") %>% 
+   width(width = 1.4, j = 1) %>% 
+   width(width = 1.2, j = 2:4) %>% 
+   bg(bg = "dark red", part = "header") %>% 
+   color(color = "white", part = "header")

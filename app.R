@@ -809,7 +809,7 @@ server <- function(input, output, session) {
           ph_with(
             block_list(
               fpar(fp_p = fp_par(text.align = "center"),
-                   ftext(paste("EHSS - Compliance Training Completion Status", months(Sys.Date() - months(1)), "/", months(Sys.Date()), year(Sys.Date()), "as of", format(Sys.Date(), format ="%m/%d/%Y")), 
+                   ftext(paste("EHSS - Compliance Training Completion Status", " ", months(Sys.Date() - months(1)), "/", months(Sys.Date()), " ", year(Sys.Date()), " ","as of", " ",format(Sys.Date(), format ="%m/%d/%Y"), sep = ""), 
                          prop = fp_text(font.size = 28)
                    )
               )

@@ -1,7 +1,7 @@
 library(readxl)
 library(tidyverse)
 
-source("data/locations.R")
+source("locations2.R")
 
 CBCSList <- function(territory, week.start, week.end) {
   
@@ -21,4 +21,6 @@ CBCSList <- function(territory, week.start, week.end) {
     select(Incident)
 }
 
-CBCSList(territory = "TAMPA", week.start = "2019-08-08", week.end = "2019-08-23")
+cbcs.table <- CBCSList(territory = "TAMPA", week.start = "2019-08-08", week.end = "2019-08-23")
+
+cbcs.title <- "Safety - Incidents this week"

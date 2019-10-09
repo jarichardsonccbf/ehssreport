@@ -2,7 +2,7 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 
-source("data/locations.R")
+source("locations2.R")
 
 
 CBCSPivots <- function(territory) {
@@ -60,5 +60,40 @@ return(list(claim.cost, claim.count))
   
 }
 
+flextable_cost <- flextable(CBCSPivots("TAMPA")[[1]]) %>% 
+  add_header_lines(values = "Claim Cost", top = TRUE) %>% 
+  border_remove() %>% 
+  border(border.top = fp_border(color = "black"),
+         border.bottom = fp_border(color = "black"),
+         border.left = fp_border(color = "black"),
+         border.right = fp_border(color = "black"), part = "all") %>%
+  bold(bold = TRUE, part = "header") %>% 
+  align(align = "left", part = "all", j = 1) %>% 
+  align(align = "center", part = "header", j = 2:5) %>% 
+  bg(bg = "light blue", part = "header") %>% 
+  bg(bg = "light blue", part = "body", i = nrow(CBCSPivots("TAMPA")[[1]])) %>% 
+  bold(bold = TRUE, part = "body", i = nrow(CBCSPivots("TAMPA")[[1]])) %>% 
+  width(width = 1.48, j = 1) %>% 
+  width(width = 1, j = 2:4) %>% 
+  width(width = 1.14, j = 5)
 
-CBCSPivots("TAMPA")
+flextable_count <- flextable(CBCSPivots("TAMPA")[[2]]) %>% 
+  add_header_lines(values = "Claim Count", top = TRUE) %>% 
+  border_remove() %>% 
+  border(border.top = fp_border(color = "black"),
+         border.bottom = fp_border(color = "black"),
+         border.left = fp_border(color = "black"),
+         border.right = fp_border(color = "black"), part = "all") %>%
+  bold(bold = TRUE, part = "header") %>% 
+  align(align = "left", part = "all", j = 1) %>% 
+  align(align = "center", part = "header", j = 2:5) %>% 
+  bg(bg = "light blue", part = "header") %>% 
+  bg(bg = "light blue", part = "body", i = nrow(CBCSPivots("TAMPA")[[2]])) %>% 
+  bold(bold = TRUE, part = "body", i = nrow(CBCSPivots("TAMPA")[[2]])) %>% 
+  width(width = 1.48, j = 1) %>% 
+  width(width = 1, j = 2:4) %>% 
+  width(width = 1.14, j = 5)
+
+cbcs.pivots.title <- "Safety"
+
+cbcs.pivots.text <- paste("Tampa Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y"))
