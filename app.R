@@ -400,12 +400,12 @@ server <- function(input, output, session) {
     
     # claim cost table
     claim.cost <- rbind(costs, costs.tot) %>% 
-      mutate(
-        WC = paste("$", round(WC, 0), sep = ""),
-        Auto = paste("$", round(Auto, 0), sep = ""),
-        GL = paste("$", round(GL, 0), sep = ""),
-        Total = paste("$", round(Total, 0), sep = "")
-      )
+    mutate(
+      WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
+      Auto = paste("$", prettyNum(round(Auto, 0), big.mark = ","), sep = ""),
+      GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
+      Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
+    )
   })
   
   output$cost.pivot <- renderUI({
@@ -637,7 +637,7 @@ server <- function(input, output, session) {
   
   output$download_powerpoint <- downloadHandler(
     filename = function() {  
-      "P3Weekly_Summary_Deck_LOC_MMDDYY.pptx"
+      paste("P3Weekly_Summary_Deck_", input$manager, "_", gsub("-", "", Sys.Date()), ".pptx", sep = "")
     },
     content = function(file) {
       
