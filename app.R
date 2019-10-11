@@ -851,6 +851,19 @@ server <- function(input, output, session) {
           ph_with_flextable(
             value = flextable_cbcs.count,
             type = "body"
+          ) %>% add_slide(layout = "Title and Content", master = "Office Theme") %>% 
+          ph_with(
+            block_list(
+              fpar(fp_p = fp_par(text.align = "center"),
+                   ftext(paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y")), 
+                         prop = fp_text(font.size = 20)
+                   )
+              )
+            ),
+            location = ph_location_type(type = "title")) %>% 
+          ph_with_flextable(
+            value = flextable_cbcs.cost,
+            type = "body"
           )
 
       }
