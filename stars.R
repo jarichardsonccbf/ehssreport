@@ -1,11 +1,15 @@
 library(tidyverse)
 library(readxl)
 library(lubridate)
+library(flextable)
+library(officer)
 
 source("locations2.R")
 
+rm(cbcs.locations, jjkeller.locations, lms.locations)
+
 # stars.df <- read_excel("data/andrea10-4test/Stars.xlsx") %>% 
-stars.df <- read_excel("data/STARSold.xlsx") %>% 
+stars.df <- read_excel("data/STARSjohn42.xlsx") %>% 
   rename(Location = `Location Name`) %>% 
   left_join(stars.locations, by = "Location") %>%  
   mutate(year = year(`Creation Date`),
@@ -17,9 +21,11 @@ stars.df <- read_excel("data/STARSold.xlsx") %>%
                            "Complete - Preventable" = "Complete P",
                            "Complete - Non-preventable" = "Complete NP")) %>% 
   filter(Status != "Error Creating",
+         `Investigation Type` == "Vehicle" | 
+         `Investigation Type` == "Non-Vehicle",
          Status != "Scheduled for Create",
          year == year(Sys.Date()),
-         manager == "TAMPA") %>% 
+         manager == "ORLANDO") %>% 
   droplevels()
 
 stars.df$Status

@@ -571,6 +571,8 @@ server <- function(input, output, session) {
                                "Complete - Non-preventable" = "Complete NP")) %>% 
       filter(Status != "Error Creating",
              Status != "Scheduled for Create",
+             `Investigation Type` == "Vehicle" | 
+             `Investigation Type` == "Non-Vehicle",
              year == year(Sys.Date())) %>% 
       droplevels()
     

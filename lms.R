@@ -5,12 +5,12 @@ library(lubridate)
 
 source("locations2.R")
 
-lms <- read.csv("data/browardLMS.csv")
+lms <- read.csv("data/orlandolms.csv")
   
 lms.pivots.df <- lms %>% 
   left_join(lms.locations, "Org.Name") %>% 
 # play with inner joining this then filtering on ft myers broward  
-  filter(manager == "TAMPA") %>% 
+  filter(manager == "ORLANDO") %>% 
   mutate(Item.Status = recode(Item.Status,
                               "In Progress" = "Incomplete",
                               "Not Started" = "Incomplete"),
@@ -46,4 +46,3 @@ flextable_lms <- flextable(lms.pivots.df) %>%
 
 flextable_lms
 
-lms.title <- paste("EHSS - Compliance Training Completion Status", " ", months(Sys.Date() - months(1)), "/", months(Sys.Date()), " ", year(Sys.Date()), " ","as of", " ",format(Sys.Date(), format ="%m/%d/%Y"), sep = "")
