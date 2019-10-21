@@ -5,11 +5,10 @@ library(lubridate)
 
 source("locations2.R")
 
-lms <- read.csv("data/orlandolms.csv")
-  
+lms <- read.csv("data/orlandolms42.csv")
+
 lms.pivots.df <- lms %>% 
   left_join(lms.locations, "Org.Name") %>% 
-# play with inner joining this then filtering on ft myers broward  
   filter(manager == "ORLANDO") %>% 
   mutate(Item.Status = recode(Item.Status,
                               "In Progress" = "Incomplete",

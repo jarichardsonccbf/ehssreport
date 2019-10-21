@@ -1368,8 +1368,8 @@ lms.locations <- data.frame(
     "Channel Marketing",
     "Commercial Capabilities",
     "Corporate HR & Ops",
-    "Customer Management FSOP",
-    "Customer Management Retail",
+    "Customer Management ï¿½ FSOP",    # NOTE the weird one is here and right below
+    "Customer Management ï¿½ Retail",
     "Daytona Distribution",
     "Daytona Distribution Team 1",
     "Daytona Distribution Team 2",
@@ -1466,6 +1466,11 @@ lms.locations <- data.frame(
     
   )
 )
+
+lms.locations <- lms.locations %>% 
+  mutate(Org.Name = recode(Org.Name,
+                           "Customer Management Ã¯Â¿Â½ FSOP" = "Customer Management ï¿½ FSOP",
+                           "Customer Management Ã¯Â¿Â½ Retail" = "Customer Management ï¿½ Retail"))
 
 # STARS ----
 
