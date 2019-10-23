@@ -6,26 +6,27 @@ library(officer)
 
 source("locations2.R")
 
-
-CBCSPivots <- function(territory) {
-  df <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>%
-    mutate(Coverage = recode(Coverage,
+df <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>%
+  mutate(Coverage = recode(Coverage,
                              "ALBI"  = "AUTO",
                              "ALPD"  = "AUTO",
                              "ALAPD" = "AUTO",
                              "GLPD"  = "GL"  ,
                              "GLBI"  = "GL"),
            occ.year = year(`Occ Date`)) %>%
-    rename(Dept.Name = `Dept Name`) %>% 
-    left_join(cbcs.locations, by = "Dept.Name") %>% 
-    filter(manager == territory,
-           occ.year == format(Sys.Date(), "%Y")) %>% 
-    select(`Loc Name`, Coverage, Incurred)
+  rename(Dept.Name = `Dept Name`) %>% 
+  left_join(cbcs.locations, by = "Dept.Name") %>% 
+  filter(occ.year == format(Sys.Date(), "%Y"),
+         manager != "PLACEHOLDER") %>%
+  select(manager, `Loc Name`, Coverage, Incurred) %>% 
+  group_by(manager) %>% 
+  group_split(manager)
 
-  
+
 # claim cost 
-  
-claim.cost <- df %>% 
+
+ClaimCost <- function (manager.area) {
+claim.cost <- manager.area %>% 
   group_by(`Loc Name`, Coverage) %>% 
   summarise(Incurred = sum(Incurred)) %>%
   ungroup() %>% 
@@ -39,27 +40,35 @@ colnames(claim.cost.tot) <- colnames(claim.cost)
   
 # claim cost table
 claim.cost <- rbind(claim.cost, claim.cost.tot)
-  
 
-# claim count
-
-claim.count <- df %>% 
-  group_by(`Loc Name`, Coverage) %>% 
-  summarise (n = n()) %>% 
-  spread(Coverage, n) %>% 
-  replace(., is.na(.), 0) %>% 
-  mutate(Totals = sum(AUTO, GL, WC)) %>% 
-  ungroup()
-  
-claim.count.tot <- data.frame("Total", sum(claim.count$AUTO), sum(claim.count$GL), sum(claim.count$WC), sum(claim.count$Totals))
-  
-colnames(claim.count.tot) <- colnames(claim.count)
-  
-# claim count table
-claim.count <- rbind(claim.count,claim.count.tot)
-
-return(list(claim.cost, claim.count))  
+return(claim.cost)
   
 }
 
-CBCSPivots("TAMPA")
+ClaimCost(df[[4]])
+
+
+# claim count
+
+ClaimCount <- function (manager.area) {
+  
+  claim.count <- manager.area %>% 
+    group_by(`Loc Name`, Coverage) %>% 
+    summarise (n = n()) %>% 
+    spread(Coverage, n) %>% 
+    replace(., is.na(.), 0) %>% 
+    mutate(Totals = sum(AUTO, GL, WC)) %>% 
+    ungroup()
+  
+  claim.count.tot <- data.frame("Total", sum(claim.count$AUTO), sum(claim.count$GL), sum(claim.count$WC), sum(claim.count$Totals))
+  
+  colnames(claim.count.tot) <- colnames(claim.count)
+  
+  # claim count table
+  claim.count <- rbind(claim.count,claim.count.tot)
+  
+  return(claim.count) 
+
+}
+
+ClaimCount(df[[5]])

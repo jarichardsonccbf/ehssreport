@@ -4,57 +4,35 @@ library(scales)
 
 source("locations2.R")
 
-JjkGraphs <- function(territory) {
+df <- read.csv("data/jjkeller.csv") %>%
+   left_join(jjkeller.locations, "Assigned.Location") %>%
+   filter(DQ.File == "In Compliance" | DQ.File == "Out of Compliance") %>%
+   mutate(dq.binary = recode(DQ.File,
+                             "In Compliance" = 1,
+                             "Out of Compliance" = 0)) %>%
+   group_by(manager, Assigned.Location) %>%
+   summarise(num.compliant     = sum(dq.binary      ),
+             total             = length(dq.binary   ),
+             percent.compliant = num.compliant/total * 100) %>% 
+   group_by(manager) %>% 
+   group_split() 
+   
+JjkQual <- function (manager.loc) {
 
-df <- read.csv("data/jjkeller.csv")
+   jjk.qual.totals <- data.frame("Total:", sum(manager.loc$num.compliant), sum(manager.loc$total), round(sum(manager.loc$num.compliant)/sum(manager.loc$total) * 100,2))
+   
+   colnames(jjk.qual.totals) <- colnames(manager.loc %>% select(-c(manager)))
+   
+   dq.table <- rbind(manager.loc %>% select(-c(manager)), jjk.qual.totals)
 
-jjk.qual <- df %>%
-  left_join(jjkeller.locations, "Assigned.Location") %>%
-  filter(manager == "TAMPA",
-         DQ.File == "In Compliance" | DQ.File == "Out of Compliance") %>%
-  mutate(dq.binary = recode(DQ.File,
-                            "In Compliance" = 1,
-                            "Out of Compliance" = 0)) %>%
-  group_by(Assigned.Location) %>%
-  summarise(num.compliant     = sum(dq.binary      ),
-            total             = length(dq.binary   ),
-            percent.compliant = num.compliant/total * 100)
+   return(dq.table)
+}
 
-jjk.qual.totals <- data.frame("Total:", sum(jjk.qual$num.compliant), sum(jjk.qual$total), round(sum(jjk.qual$num.compliant)/sum(jjk.qual$total) * 100,2))
-
-colnames(jjk.qual.totals) <- colnames(jjk.qual)
-
-# driver qual table
-dq.table <- rbind(jjk.qual,jjk.qual.totals)
-
-dq.table
-
-
-
+JjkQual(df[[1]])
 
 
 
 
-df.table <- df %>%
-  left_join(jjkeller.locations, "Assigned.Location") %>%
-  filter(manager == territory,
-         DQ.File == "In Compliance" | DQ.File == "Out of Compliance")
-
-dq <- df.table %>%
-  mutate(dq.binary = recode(DQ.File,
-                            "In Compliance" = 1,
-                            "Out of Compliance" = 0)) %>%
-  group_by(Assigned.Location) %>%
-  summarise(num.compliant     = sum(dq.binary      ),
-            total             = length(dq.binary   ),
-            percent.compliant = num.compliant/total*100)
-
-dq.totals <- data.frame("Total:", sum(dq$num.compliant), sum(dq$total), round(sum(dq$num.compliant)/sum(dq$total) * 100,2))
-
-colnames(dq.totals) <- colnames(dq)
-
-# driver qual table
-dq.table <- rbind(dq,dq.totals)
 
 
 # DQ pie chart
@@ -124,13 +102,13 @@ dq.stats <- df %>%
    legend.background = element_rect(linetype = "solid")) +
  guides(fill = guide_legend(override.aes = list(colour=NA)))
 
-return(list(dq.table, dq.pie, dq.stats))
-
-}
 
 
 
-flextable_jjk <- flextable(JjkGraphs("TAMPA")[[1]]) %>% 
+library(flextable)
+library(officer)
+
+flextable_jjk <- flextable(JjkQual(df[[5]])) %>% 
    border_remove() %>% 
    border(border.top = fp_border(color = "black"),
           border.bottom = fp_border(color = "black"),
@@ -138,7 +116,7 @@ flextable_jjk <- flextable(JjkGraphs("TAMPA")[[1]]) %>%
           border.right = fp_border(color = "black"), part = "all") %>% 
    align(align = "center", part = "all") %>% 
    align(align = "left", part = "body", j = 1) %>% 
-   bold(bold = TRUE, part = "body", i = nrow(JjkGraphs("TAMPA")[[1]])) %>% 
+   bold(bold = TRUE, part = "body", i = nrow(JjkQual(df[[5]]))) %>% 
    bold(bold = TRUE, part = "header") %>% 
    height(height = 0.74, part = "header") %>% 
    height(height = 0.28, part = "body") %>% 
