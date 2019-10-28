@@ -592,7 +592,8 @@ server <- function(input, output, session) {
               `Investigation Type`) %>% 
       mutate(`Investigation Type` = recode(`Investigation Type`,
                                            "A" = "Total")) %>% 
-      ungroup()
+      ungroup() %>% 
+      select(Location, `Investigation Type`, `Complete NP`, `Complete P`, `Pending IRC Review`, New)
     
     sums <- stars.b %>% 
       group_by(Status) %>% 
@@ -600,7 +601,7 @@ server <- function(input, output, session) {
       pivot_wider(names_from = Status, values_from = n) %>% 
       mutate(Total = "Total",
              empty = NA) %>% ungroup() %>% 
-      select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
+      select(Total, empty, `Complete NP`, `Complete P`, `Pending IRC Review`, New)
     
     colnames(sums) <- colnames(type.totals)
     
