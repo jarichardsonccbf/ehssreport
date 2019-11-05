@@ -113,7 +113,7 @@ ui <- fluidPage(
                   tabPanel("Intro",
                            h5(p("Download data from LMS, CBCS, JJ Keller, and STARS.", 
                                 span("Do not", style = "color:red"),
-                                "change any information in your raw data pulls. Upload the indicated data sources to the left.")),
+                                "change any information in your raw data pulls. Upload the indicated data sources to the left. You may need to select \"All file types\" from the dropdown menu next to the \"File name\" entry field to find your file.")),
                            h5(p("Indicate 'YES' under 'Entire territory?' if you would like to see the entire CCBF system or 'NO' to display a specific region.")),
                            h5(p("The date range will default to the past 7 days and will display CBCS results for this range unless otherwise specified.")),
                            h5(p("Please report any errors, changes in vendors or data sources, or location shifts to Jason Richardson (jarichardson@cocacolaflorida.com).

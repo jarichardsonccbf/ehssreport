@@ -5,7 +5,7 @@ library(lubridate)
 
 source("locations2.R")
 
-lms <- read.csv("data/lmsfull.csv")
+lms <- read.csv("data/jaxLMS.csv")
 
 lms.pivots.df <- lms %>% 
   left_join(lms.locations, "Org.Name") %>% 
@@ -27,4 +27,4 @@ lms.pivots.df <- lms %>%
   group_split()
   
 lms.pivots.df[1]
-lms.pivots.df[2]
+a <- lms.pivots.df[2]
