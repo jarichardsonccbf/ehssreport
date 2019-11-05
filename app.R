@@ -354,6 +354,27 @@ server <- function(input, output, session) {
   cbcs.pivots.df <- reactive({
     req(input$file2)
     
+    if(input$manager == "JACKSONVILLE") {
+      
+      cbcs.pivots <- read_excel(input$file2$datapath, skip = 6) %>% 
+          rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
+          left_join(cbcs.locations, by = "Dept.Name") %>% 
+          filter(manager == input$manager)
+      
+      cbcs.pivots %>%
+        mutate(Coverage = recode(Coverage,
+                                 "ALBI"  = "GL",
+                                 "ALPD"  = "PD",
+                                 "ALAPD" = "PD",
+                                 "GLPD"  = "PD"  ,
+                                 "GLBI"  = "GL"),
+               `Loc Name` = recode(`Loc Name`,
+                                   "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
+               occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>% 
+        filter(occ.year == format(Sys.Date(), "%Y"))
+    
+    } else {
+    
     if(input$allstate == "YES")
       
       cbcs.pivots <- read_excel(input$file2$datapath, skip = 6) %>% 
@@ -378,37 +399,71 @@ server <- function(input, output, session) {
                                  "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
              occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>% 
       filter(occ.year == format(Sys.Date(), "%Y"))
+    }
   })
   
   # Cost Pivot ----
   
   cost.pivot <- reactive({
-    costs <- cbcs.pivots.df() %>% 
-      group_by(`Loc Name`, Coverage) %>% 
-      mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
-      summarise(Incurred = sum(raw)) %>%
-      ungroup() %>% 
-      pivot_wider(names_from = Coverage, values_from = Incurred) %>%
-      rename(Location = `Loc Name`) %>% 
-      select(Location, Auto, GL, WC) %>% 
-      replace(., is.na(.), 0) %>% 
-      mutate(Total = rowSums(.[2:4]))
     
-    costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
+    if(input$manager == "JACKSONVILLE") {
     
-    colnames(costs.tot) <- colnames(costs)
+      costs <- cbcs.pivots.df() %>% 
+        group_by(`Loc Name`, Coverage) %>% 
+        mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
+        summarise(Incurred = sum(raw)) %>%
+        ungroup() %>% 
+        pivot_wider(names_from = Coverage, values_from = Incurred) %>%
+        rename(Location = `Loc Name`) %>% 
+        select(Location, GL, PD, WC) %>% 
+        replace(., is.na(.), 0) %>% 
+        mutate(Total = rowSums(.[2:4]))
+      
+      costs.tot <- data.frame("Total", sum(costs$GL), sum(costs$PD), sum(costs$WC), sum(costs$Total))
+      
+      colnames(costs.tot) <- colnames(costs)
+      
+      # claim cost table
+      claim.cost <- rbind(costs, costs.tot) %>% 
+        mutate(
+          PD = paste("$", prettyNum(round(PD, 0), big.mark = ","), sep = ""),
+          GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
+          WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
+          Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
+        )
     
-    # claim cost table
-    claim.cost <- rbind(costs, costs.tot) %>% 
-    mutate(
-      WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
-      Auto = paste("$", prettyNum(round(Auto, 0), big.mark = ","), sep = ""),
-      GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
-      Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
-    )
+    } else {
+      
+      costs <- cbcs.pivots.df() %>% 
+        group_by(`Loc Name`, Coverage) %>% 
+        mutate(raw = as.numeric(gsub('[$,]', '', Incurred))) %>% 
+        summarise(Incurred = sum(raw)) %>%
+        ungroup() %>% 
+        pivot_wider(names_from = Coverage, values_from = Incurred) %>%
+        rename(Location = `Loc Name`) %>% 
+        select(Location, Auto, GL, WC) %>% 
+        replace(., is.na(.), 0) %>% 
+        mutate(Total = rowSums(.[2:4]))
+      
+      costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
+      
+      colnames(costs.tot) <- colnames(costs)
+      
+      # claim cost table
+      claim.cost <- rbind(costs, costs.tot) %>% 
+        mutate(
+          WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
+          Auto = paste("$", prettyNum(round(Auto, 0), big.mark = ","), sep = ""),
+          GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
+          Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
+        )  
+      
+    }
+    
   })
   
   output$cost.pivot <- renderUI({
+    
     costs <- cost.pivot() %>% 
       flextable() %>% 
       add_header_lines(values = "Claim Cost", top = TRUE) %>% 
@@ -432,6 +487,34 @@ server <- function(input, output, session) {
   # Count Pivot----
   
   count.pivot <- reactive({
+    
+    if(input$manager == "JACKSONVILLE") {
+      
+      counts <- cbcs.pivots.df() %>% 
+        group_by(`Loc Name`, Coverage) %>% 
+        summarise (n = n()) %>% 
+        pivot_wider(names_from = Coverage, values_from = n) %>%
+        rename(Location = `Loc Name`) %>%
+        select(Location, GL, PD, WC) %>% 
+        replace(., is.na(.), 0) %>% 
+        mutate(Total = sum(GL, PD, WC)) %>% 
+        ungroup()
+      
+      counts.tot <- data.frame("Total", sum(counts$GL), sum(counts$PD), sum(counts$WC), sum(counts$Total))
+      
+      colnames(counts.tot) <- colnames(counts)
+      
+     # claim count table
+      claim.count <- rbind(counts,counts.tot) %>% 
+        mutate(
+          GL = format(round(GL, 0), nsmall = 0),
+          PD = format(round(PD, 0), nsmall = 0),
+          WC = format(round(WC, 0), nsmall = 0),
+          Total = format(round(Total, 0), nsmall = 0)
+        )
+      
+    } else {
+    
     counts <- cbcs.pivots.df() %>% 
       group_by(`Loc Name`, Coverage) %>% 
       summarise (n = n()) %>% 
@@ -454,6 +537,9 @@ server <- function(input, output, session) {
         GL = format(round(GL, 0), nsmall = 0),
         Total = format(round(Total, 0), nsmall = 0)
       )
+    
+    }
+    
   })
   
   output$count.pivot <- renderUI({
