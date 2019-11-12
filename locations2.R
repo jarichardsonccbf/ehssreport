@@ -78,7 +78,11 @@ cbcs.locations <- data.frame(Dept.Name = c("Aptive Environmental, LLC; Aptive En
                                            "THE KEYS - SALES",
                                            "Coca-Cola Beverages Florida LLC",
                                            "HEADQUARTERS",
-                                           "HEADQUARTERS - HQ"
+                                           "HEADQUARTERS - HQ",
+                                           "SEBRING - DIST",
+                                           "SEBRING - ES",
+                                           "SEBRING - FLEET",
+                                           "SEBRING - SALES"
 ),		
 manager = c("PLACEHOLDER",
             "TAMPA",
@@ -158,7 +162,11 @@ manager = c("PLACEHOLDER",
             "SOUTH FL",
             "PLACEHOLDER",
             "PLACEHOLDER",
-            "PLACEHOLDER")
+            "PLACEHOLDER",
+            "ORLANDO",
+            "ORLANDO",
+            "ORLANDO",
+            "ORLANDO")
 )
 
 cbcs.locations$Dept.Name <- as.character(cbcs.locations$Dept.Name)
@@ -210,7 +218,9 @@ jjkeller.locations <- data.frame(Assigned.Location = c("Lakeland FL",
                                                        "The Keys FL Non-DOT",
                                                        "S Florida Cust Care Non- DOT",
                                                        "Pre-Employment Non-DOT",
-                                                       "Pre-Employment DOT"
+                                                       "Pre-Employment DOT",
+                                                       "Sebring FL",
+                                                       "Sebring FL Non-DOT"
 ),		
 manager = c("TAMPA",
             "TAMPA",
@@ -257,7 +267,9 @@ manager = c("TAMPA",
             "SOUTH FL",
             "SOUTH FL",
             "PLACEHOLDER",
-            "PLACEHOLDER")
+            "PLACEHOLDER",
+            "ORLANDO",
+            "ORLANDO")
 )
 
 # LMS ----
@@ -743,7 +755,11 @@ lms.locations <- data.frame(
     "JACKSONVILLE",
     "JACKSONVILLE",
     "JACKSONVILLE",
-    "JACKSONVILLE"
+    "JACKSONVILLE",
+    "ORLANDO",
+    "ORLANDO",
+    "ORLANDO",
+    "ORLANDO"
     
   ),
   
@@ -1227,8 +1243,11 @@ lms.locations <- data.frame(
     "Jacksonville ",
     "Jacksonville ",
     "Jacksonville ",
-    "Jacksonville "
-    
+    "Jacksonville ",
+    "Sebring",
+    "Sebring",
+    "Sebring",
+    "Sebring"
   ),
   
   Org.Name = c(
@@ -1711,7 +1730,11 @@ lms.locations <- data.frame(
     "Reset Sales Team 2",
     "Security",
     "Talent and Learning",
-    "Technology Solutions Team 1"
+    "Technology Solutions Team 1",
+    "Sebring Sales Merchandising Team 1",
+    "Sebring Sales Merchandising Team 2",
+    "Sebring Sales Team 1",
+    "Sebring Territory"
     
   )
 )
@@ -1741,7 +1764,8 @@ stars.locations <- data.frame( Location = c("FT MYERS",
                                             "ORLANDO MRC",
                                             "LAKELAND",
                                             "COCA-COLA BEVERAGES FLORIDA, LLC",
-                                            "JACKSONVILLE SURGE"),
+                                            "JACKSONVILLE SURGE",
+                                            "SEBRING"),
                                manager = c("FT MYERS - BROWARD",
                                            "TAMPA",
                                            "ORLANDO",
@@ -1760,7 +1784,8 @@ stars.locations <- data.frame( Location = c("FT MYERS",
                                            "ORLANDO",
                                            "TAMPA",
                                            "PLACEHOLDER",
-                                           "JACKSONVILLE")
+                                           "JACKSONVILLE",
+                                           "ORLANDO")
                                )
 
 stars.locations$Location <- as.character(stars.locations$Location)
