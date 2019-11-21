@@ -874,7 +874,7 @@ server <- function(input, output, session) {
           align(align = "center", part = "header") %>% 
           add_header_lines(values = paste("EHSS Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>% 
           height(part = "header", height = 2.28) %>%  
-          width(width = 1.35, j = 1) %>% 
+          width(width = 1.7, j = 1) %>% 
           width(width = 0.71, j = 2:length(flextable(lms.pivots.df())$col_keys)) %>% 
           bg(bg = "light blue", part = "header") %>% 
           height(height = 0.3, part = "header", i = 1) %>% 
