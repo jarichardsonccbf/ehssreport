@@ -568,7 +568,7 @@ server <- function(input, output, session) {
     
     req(input$file3)
     
-    if(input$manager == "FT MYERS - BROWARD") {
+    if(input$manager == "FT MYERS - BROWARD"){
       
       if(input$allstate == "YES")
         
@@ -594,32 +594,66 @@ server <- function(input, output, session) {
       
     } else {
       
-      if(input$allstate == "YES")
+      if(input$manager == "TAMPA"){
         
-        lms <- read.csv(input$file3$datapath) %>% 
-          left_join(lms.locations, "Org.Name")
-      
-      else
+        if(input$allstate == "YES")
+          
+          lms <- read.csv(input$file3$datapath) %>% 
+            left_join(lms.locations, "Org.Name")
         
-        lms <- read.csv(input$file3$datapath) %>% 
-          left_join(lms.locations, "Org.Name") %>%
-          filter(manager == input$manager)
+        else
+          
+          lms <- read.csv(input$file3$datapath) %>% 
+            left_join(lms.locations, "Org.Name") %>%
+            filter(manager == input$manager)
+        
+        lms %>% mutate(Item.Status = recode(Item.Status,
+                                            "In Progress" = "Incomplete",
+                                            "Not Started" = "Incomplete"),
+                       comp.binary = recode(Item.Status,
+                                            "Incomplete" = 0,
+                                            "Completed" = 1)) %>%
+          group_by(location, Title) %>%
+          summarise(num.comp = sum(comp.binary),
+                    total = length(comp.binary),
+                    percent.compliant = num.comp/total * 100) %>% 
+          select(location, Title, percent.compliant) %>% 
+          rename(Location = location) %>% 
+          mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
+          pivot_wider(names_from = Title, values_from = percent.compliant)
+        
+      } else {
+        
+        if(input$allstate == "YES")
+          
+          lms <- read.csv(input$file3$datapath) %>% 
+            left_join(lms.locations, "Org.Name")
+        
+        else
+          
+          lms <- read.csv(input$file3$datapath) %>% 
+            left_join(lms.locations, "Org.Name") %>%
+            filter(manager == input$manager)
+        
+        lms %>% mutate(Item.Status = recode(Item.Status,
+                                            "In Progress" = "Incomplete",
+                                            "Not Started" = "Incomplete"),
+                       comp.binary = recode(Item.Status,
+                                            "Incomplete" = 0,
+                                            "Completed" = 1)) %>%
+          group_by(location, Title) %>%
+          summarise(num.comp = sum(comp.binary),
+                    total = length(comp.binary),
+                    percent.compliant = num.comp/total * 100) %>% 
+          select(location, Title, percent.compliant) %>% 
+          rename(Location = location) %>% 
+          mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
+          pivot_wider(names_from = Title, values_from = percent.compliant)
+        
+      }
       
-      lms %>% mutate(Item.Status = recode(Item.Status,
-                                          "In Progress" = "Incomplete",
-                                          "Not Started" = "Incomplete"),
-                     comp.binary = recode(Item.Status,
-                                          "Incomplete" = 0,
-                                          "Completed" = 1)) %>%
-        group_by(location, Title) %>%
-        summarise(num.comp = sum(comp.binary),
-                  total = length(comp.binary),
-                  percent.compliant = num.comp/total * 100) %>% 
-        select(location, Title, percent.compliant) %>% 
-        rename(Location = location) %>% 
-        mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
-        pivot_wider(names_from = Title, values_from = percent.compliant)
     }
+    
     
   })
   
