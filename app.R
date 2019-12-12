@@ -41,7 +41,10 @@ fileInput2 <- function(inputId, label = NULL, labelIcon = NULL, multiple = FALSE
 ui <- fluidPage(
   
   # App title ----
-  titlePanel("EHSS Regional Manager Weekly Reporting Tool"),
+  
+  titlePanel(title=div(img(src="logo.jpg"), "EHSS Regional Manager Weekly Reporting Tool")),
+  
+  hr(),
   
   # define class fileinput_2 to hide inputTag in fileInput2. Not sure what this is doing.
   tags$head(tags$style(HTML(
