@@ -8,7 +8,7 @@ source("locations2.R")
 
 rm(cbcs.locations, jjkeller.locations, lms.locations)
  
-stars.df <- read_excel("data/STARSold.xlsx") %>% 
+stars.df <- read_excel("data/1-3-20STARS.xlsx") %>% 
   rename(Location = `Location Name`) %>% 
   left_join(stars.locations, by = "Location") %>%  
   mutate(year = year(`Creation Date`),
@@ -28,19 +28,16 @@ stars.df <- read_excel("data/STARSold.xlsx") %>%
 
 rm(stars.locations)
 
-a <- stars.df %>% 
-  group_by(manager) %>% 
-  group_split(manager)
-
-
-StarsSummary <- function(manager.input) {
+one.loc <- stars.df %>% 
+  filter(manager == "ORLANDO")
   
-type <- manager.input %>% 
+  
+type <- one.loc %>% 
   group_by(Location, Status, `Investigation Type`) %>% 
   summarise (n = n()) %>% 
   pivot_wider(names_from = Status, values_from = n)
 
-totals <- manager.input %>% 
+totals <- one.loc %>% 
   group_by(Location, Status) %>% 
   summarise(n = n()) %>% 
   pivot_wider(names_from = Status, values_from = n) %>% 
@@ -53,21 +50,17 @@ type.totals <- rbind(type, totals) %>%
                                        "A" = "Total")) %>% 
   ungroup()
 
-sums <- manager.input %>% 
+sums <- one.loc %>% 
   group_by(Status) %>% 
   summarise(n = n()) %>% 
   pivot_wider(names_from = Status, values_from = n) %>% 
   mutate(Total = "Total",
          empty = NA) %>% ungroup() %>% 
-  select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
+  select(Total, empty, everything())
+ #  select(Total, empty, `Complete NP`, `Complete P`, New, `Pending IRC Review`)
 
 colnames(sums) <- colnames(type.totals)
 
 stars.pivot <- rbind(type.totals, sums) %>% 
   rename("Count of" = "Investigation Type")
   
-return(stars.pivot)
-
-}
-
-StarsSummary(a[[2]])

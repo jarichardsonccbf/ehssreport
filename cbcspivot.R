@@ -6,7 +6,7 @@ library(officer)
 
 source("locations2.R")
 
-df <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>%
+df <- read_excel("data/1-3-20CBCS_CCBF_LOSS_RUN 010320.xls", skip = 6) %>%
   mutate(Coverage = recode(Coverage,
                              "ALBI"  = "AUTO",
                              "ALPD"  = "AUTO",
@@ -20,30 +20,32 @@ df <- read_excel("data/CBCS_CCBF_LOSS_RUN.xls", skip = 6) %>%
          manager != "PLACEHOLDER") %>%
   select(manager, `Loc Name`, Coverage, Incurred) %>% 
   group_by(manager) %>% 
-  group_split(manager)
+  filter(manager == "FT MYERS - BROWARD")
 
 
 # claim cost 
 
-ClaimCost <- function (manager.area) {
-claim.cost <- manager.area %>% 
+claim.cost <- df %>% 
   group_by(`Loc Name`, Coverage) %>% 
   summarise(Incurred = sum(Incurred)) %>%
   ungroup() %>% 
   spread(Coverage, Incurred) %>%
   replace(., is.na(.), 0) %>% 
-  mutate(Totals = rowSums(.[2:4]))
+  mutate(Totals = rowSums(.[-1]))
   
-claim.cost.tot <- data.frame("Total", sum(claim.cost$AUTO), sum(claim.cost$GL), sum(claim.cost$WC), sum(claim.cost$Totals))
-  
+claim.cost.tot <- claim.cost %>% 
+  select(-c(`Loc Name`)) %>% 
+  summarise_all(sum) %>% 
+  mutate(Total = "Total") %>% 
+  select(Total, everything())
+
+
 colnames(claim.cost.tot) <- colnames(claim.cost)
   
 # claim cost table
 claim.cost <- rbind(claim.cost, claim.cost.tot)
 
-return(claim.cost)
-  
-}
+
 
 ClaimCost(df[[4]])
 

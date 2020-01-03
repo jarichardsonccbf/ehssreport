@@ -297,7 +297,7 @@ server <- function(input, output, session) {
       height(height = 0.74, part = "header") %>% 
       height(height = 0.28, part = "body") %>% 
       width(width = 1.4, j = 1) %>% 
-      width(width = 1.2, j = 2:4) %>% 
+      width(width = 1.2, j = 2:ncol(flextable(jjk.qual.table())$body$dataset)) %>% 
       bg(bg = "dark red", part = "header") %>% 
       color(color = "white", part = "header") %>% 
       htmltools_value()
@@ -418,22 +418,27 @@ server <- function(input, output, session) {
         ungroup() %>% 
         pivot_wider(names_from = Coverage, values_from = Incurred) %>%
         rename(Location = `Loc Name`) %>% 
-        select(Location, GL, PD, WC) %>% 
+        select(Location, everything()) %>% 
         replace(., is.na(.), 0) %>% 
-        mutate(Total = rowSums(.[2:4]))
+        mutate(Totals = rowSums(.[-1]))
       
-      costs.tot <- data.frame("Total", sum(costs$GL), sum(costs$PD), sum(costs$WC), sum(costs$Total))
+      costs.tot <- costs %>% 
+        select(-c(Location)) %>% 
+        summarise_all(sum) %>% 
+        mutate(Total = "Total") %>% 
+        select(Total, everything())
       
       colnames(costs.tot) <- colnames(costs)
       
       # claim cost table
-      claim.cost <- rbind(costs, costs.tot) %>% 
-        mutate(
-          PD = paste("$", prettyNum(round(PD, 0), big.mark = ","), sep = ""),
-          GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
-          WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
-          Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
-        )
+      
+      claim.cost <- rbind(costs, costs.tot)
+      
+      format_money <- function (x) {paste("$", prettyNum(round(x, 0), big.mark = ","), sep = "")} 
+      
+      claim.cost.r <- apply(claim.cost[2:ncol(claim.cost)], 2, format_money)
+      
+      claim.cost <- cbind(claim.cost[1], as.data.frame(as.matrix(claim.cost.r)))
     
     } else {
       
@@ -444,22 +449,26 @@ server <- function(input, output, session) {
         ungroup() %>% 
         pivot_wider(names_from = Coverage, values_from = Incurred) %>%
         rename(Location = `Loc Name`) %>% 
-        select(Location, Auto, GL, WC) %>% 
+        select(Location, everything()) %>% 
         replace(., is.na(.), 0) %>% 
-        mutate(Total = rowSums(.[2:4]))
+        mutate(Totals = rowSums(.[-1]))
       
-      costs.tot <- data.frame("Total", sum(costs$Auto), sum(costs$GL), sum(costs$WC), sum(costs$Total))
+      costs.tot <- costs %>% 
+        select(-c(Location)) %>% 
+        summarise_all(sum) %>% 
+        mutate(Total = "Total") %>% 
+        select(Total, everything())
       
       colnames(costs.tot) <- colnames(costs)
       
       # claim cost table
-      claim.cost <- rbind(costs, costs.tot) %>% 
-        mutate(
-          WC = paste("$", prettyNum(round(WC, 0), big.mark = ","), sep = ""),
-          Auto = paste("$", prettyNum(round(Auto, 0), big.mark = ","), sep = ""),
-          GL = paste("$", prettyNum(round(GL, 0), big.mark = ","), sep = ""),
-          Total = paste("$", prettyNum(round(Total, 0), big.mark = ","), sep = "")
-        )  
+      claim.cost <- rbind(costs, costs.tot)
+      
+      format_money <- function (x) {paste("$", prettyNum(round(x, 0), big.mark = ","), sep = "")} 
+      
+      claim.cost.r <- apply(claim.cost[2:ncol(claim.cost)], 2, format_money)
+      
+      claim.cost <- cbind(claim.cost[1], as.data.frame(as.matrix(claim.cost.r)))  
       
     }
     
@@ -477,13 +486,13 @@ server <- function(input, output, session) {
              border.right = fp_border(color = "black"), part = "all") %>%
       bold(bold = TRUE, part = "header") %>% 
       align(align = "left", part = "all", j = 1) %>% 
-      align(align = "center", part = "header", j = 2:5) %>% 
+      align(align = "center", part = "header", j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
       bg(bg = "light blue", part = "header") %>% 
       bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
       bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
       width(width = 1.48, j = 1) %>% 
-      width(width = 1, j = 2:4) %>% 
-      width(width = 1.14, j = 5) %>% 
+      width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
+      width(width = 1.14, j = ncol(flextable(cost.pivot())$body$dataset)) %>% 
       htmltools_value()
   })
   
@@ -498,23 +507,27 @@ server <- function(input, output, session) {
         summarise (n = n()) %>% 
         pivot_wider(names_from = Coverage, values_from = n) %>%
         rename(Location = `Loc Name`) %>%
-        select(Location, GL, PD, WC) %>% 
         replace(., is.na(.), 0) %>% 
-        mutate(Total = sum(GL, PD, WC)) %>% 
-        ungroup()
+        ungroup() %>% 
+        select(Location, everything()) %>% 
+        mutate(Totals = rowSums(.[-1]))
       
-      counts.tot <- data.frame("Total", sum(counts$GL), sum(counts$PD), sum(counts$WC), sum(counts$Total))
+      counts.tot <- counts %>% 
+        select(-c(Location)) %>% 
+        summarise_all(sum) %>% 
+        mutate(Total = "Total") %>% 
+        select(Total, everything())
       
       colnames(counts.tot) <- colnames(counts)
       
      # claim count table
-      claim.count <- rbind(counts,counts.tot) %>% 
-        mutate(
-          GL = format(round(GL, 0), nsmall = 0),
-          PD = format(round(PD, 0), nsmall = 0),
-          WC = format(round(WC, 0), nsmall = 0),
-          Total = format(round(Total, 0), nsmall = 0)
-        )
+      claim.count <- rbind(counts,counts.tot) 
+      
+      format_count <- function (x) {format(round(x, 0), nsmall = 0)} 
+      
+      claim.count.r <- apply(claim.count[2:ncol(claim.count)], 2, format_count)
+      
+      claim.count <- cbind(claim.count[1], as.data.frame(as.matrix(claim.count.r)))  
       
     } else {
     
@@ -523,23 +536,27 @@ server <- function(input, output, session) {
       summarise (n = n()) %>% 
       pivot_wider(names_from = Coverage, values_from = n) %>%
       rename(Location = `Loc Name`) %>%
-      select(Location, Auto, GL, WC) %>% 
       replace(., is.na(.), 0) %>% 
-      mutate(Total = sum(Auto, GL, WC)) %>% 
-      ungroup()
+      ungroup() %>% 
+      select(Location, everything()) %>% 
+      mutate(Totals = rowSums(.[-1]))
     
-    counts.tot <- data.frame("Total", sum(counts$Auto), sum(counts$GL), sum(counts$WC), sum(counts$Total))
+    counts.tot <- counts %>% 
+      select(-c(Location)) %>% 
+      summarise_all(sum) %>% 
+      mutate(Total = "Total") %>% 
+      select(Total, everything())
     
     colnames(counts.tot) <- colnames(counts)
     
     # claim count table
-    claim.count <- rbind(counts,counts.tot) %>% 
-      mutate(
-        WC = format(round(WC, 0), nsmall = 0),
-        Auto = format(round(Auto, 0), nsmall = 0),
-        GL = format(round(GL, 0), nsmall = 0),
-        Total = format(round(Total, 0), nsmall = 0)
-      )
+    claim.count <- rbind(counts,counts.tot) 
+    
+    format_count <- function (x) {format(round(x, 0), nsmall = 0)} 
+    
+    claim.count.r <- apply(claim.count[2:ncol(claim.count)], 2, format_count)
+    
+    claim.count <- cbind(claim.count[1], as.data.frame(as.matrix(claim.count.r)))  
     
     }
     
@@ -556,13 +573,13 @@ server <- function(input, output, session) {
              border.right = fp_border(color = "black"), part = "all") %>%
       bold(bold = TRUE, part = "header") %>% 
       align(align = "left", part = "all", j = 1) %>% 
-      align(align = "center", part = "header", j = 2:5) %>% 
+      align(align = "center", part = "header", j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
       bg(bg = "light blue", part = "header") %>% 
       bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
       bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
       width(width = 1.48, j = 1) %>% 
-      width(width = 1, j = 2:4) %>% 
-      width(width = 1.14, j = 5) %>% 
+      width(width = 1, j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
+      width(width = 1.14, j = ncol(flextable(count.pivot())$body$dataset)) %>% 
       htmltools_value()
   })
   
@@ -716,7 +733,7 @@ server <- function(input, output, session) {
       mutate(`Investigation Type` = recode(`Investigation Type`,
                                            "A" = "Total")) %>% 
       ungroup() %>% 
-      select(Location, `Investigation Type`, `Complete NP`, `Complete P`, `Pending IRC Review`, New)
+      select(Location, everything())
     
     sums <- stars.b %>% 
       group_by(Status) %>% 
@@ -724,13 +741,13 @@ server <- function(input, output, session) {
       pivot_wider(names_from = Status, values_from = n) %>% 
       mutate(Total = "Total",
              empty = NA) %>% ungroup() %>% 
-      select(Total, empty, `Complete NP`, `Complete P`, `Pending IRC Review`, New)
+      select(Total, empty, everything())
     
     colnames(sums) <- colnames(type.totals)
     
     stars.pivot <- rbind(type.totals, sums) %>% 
       rename("Count of" = "Investigation Type") %>% 
-      mutate(Total = format(round(rowSums(.[3:6], na.rm = TRUE), 0), nsmall = 0))
+      mutate(Total = format(round(rowSums(.[3:ncol(sums)], na.rm = TRUE), 0), nsmall = 0))
     
   })
   
@@ -751,7 +768,7 @@ server <- function(input, output, session) {
       bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
       bold( i = ~ `Count of` == "Total") %>% 
       height(height = 0.23) %>% 
-      width(width = 0.85, j = 2:6) %>% 
+      width(width = 0.85, j = 2:ncol(flextable(stars.pivots.df())$body$dataset)) %>% 
       width(width = 1.55, j = 1) %>% 
       height(height = 0.6, part = "header", i = 2) %>% 
       bg(bg = "light blue", part = "header") %>% 
@@ -787,7 +804,7 @@ server <- function(input, output, session) {
           height(height = 0.74, part = "header") %>% 
           height(height = 0.28, part = "body") %>% 
           width(width = 1.4, j = 1) %>% 
-          width(width = 1.2, j = 2:4) %>% 
+          width(width = 1.2, j = 2:ncol(flextable(jjk.qual.table())$body$dataset)) %>% 
           bg(bg = "dark red", part = "header") %>% 
           color(color = "white", part = "header")
       }
@@ -828,13 +845,13 @@ server <- function(input, output, session) {
                  border.right = fp_border(color = "black"), part = "all") %>%
           bold(bold = TRUE, part = "header") %>% 
           align(align = "left", part = "all", j = 1) %>% 
-          align(align = "center", part = "header", j = 2:5) %>% 
+          align(align = "center", part = "header", j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
           bg(bg = "light blue", part = "header") %>% 
           bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
           bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
           width(width = 1.48, j = 1) %>% 
-          width(width = 1, j = 2:4) %>% 
-          width(width = 1.14, j = 5)
+          width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
+          width(width = 1.14, j = ncol(flextable(cost.pivot())$body$dataset))
       }
       
       # cbcs count flex ----
@@ -853,13 +870,13 @@ server <- function(input, output, session) {
                  border.right = fp_border(color = "black"), part = "all") %>%
           bold(bold = TRUE, part = "header") %>% 
           align(align = "left", part = "all", j = 1) %>% 
-          align(align = "center", part = "header", j = 2:5) %>% 
+          align(align = "center", part = "header", j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
           bg(bg = "light blue", part = "header") %>% 
           bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
           bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
           width(width = 1.48, j = 1) %>% 
           width(width = 1, j = 2:4) %>% 
-          width(width = 1.14, j = 5)
+          width(width = 1.14, j = ncol(flextable(count.pivot())$body$dataset))
       }
       
       # lms flex ----
@@ -910,7 +927,7 @@ server <- function(input, output, session) {
           bold(bold = TRUE, part = "body", i = nrow(flextable(stars.pivots.df())$body$dataset)) %>% 
           bold( i = ~ `Count of` == "Total") %>% 
           height(height = 0.23) %>% 
-          width(width = 0.85, j = 2:6) %>% 
+          width(width = 0.85, j = 2:ncol(flextable(stars.pivots.df())$body$dataset)) %>% 
           width(width = 1.55, j = 1) %>% 
           height(height = 0.6, part = "header", i = 2) %>% 
           bg(bg = "light blue", part = "header") %>% 
