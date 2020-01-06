@@ -46,31 +46,22 @@ colnames(claim.cost.tot) <- colnames(claim.cost)
 claim.cost <- rbind(claim.cost, claim.cost.tot)
 
 
-
-ClaimCost(df[[4]])
-
-
 # claim count
 
-ClaimCount <- function (manager.area) {
-  
-  claim.count <- manager.area %>% 
+claim.count <- df %>% 
     group_by(`Loc Name`, Coverage) %>% 
     summarise (n = n()) %>% 
     spread(Coverage, n) %>% 
     replace(., is.na(.), 0) %>% 
-    mutate(Totals = sum(AUTO, GL, WC)) %>% 
-    ungroup()
+    ungroup() %>% 
+    mutate(Total = rowSums(select_if(.,is_numeric), na.rm=T))
   
-  claim.count.tot <- data.frame("Total", sum(claim.count$AUTO), sum(claim.count$GL), sum(claim.count$WC), sum(claim.count$Totals))
-  
-  colnames(claim.count.tot) <- colnames(claim.count)
-  
-  # claim count table
-  claim.count <- rbind(claim.count,claim.count.tot)
-  
-  return(claim.count) 
+claim.count.tot <- claim.count %>% 
+  select(-c(`Loc Name`)) %>% 
+  summarise_all(sum) %>% 
+  mutate(Totalr = "Total") %>% 
+  select(Totalr, everything())
 
-}
-
-ClaimCount(df[[5]])
+colnames(claim.count.tot) <- colnames(claim.count)
+  
+claim.count <- rbind(claim.count,claim.count.tot)

@@ -485,14 +485,12 @@ server <- function(input, output, session) {
              border.left = fp_border(color = "black"),
              border.right = fp_border(color = "black"), part = "all") %>%
       bold(bold = TRUE, part = "header") %>% 
-      align(align = "left", part = "all", j = 1) %>% 
-      align(align = "center", part = "header", j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
+      align(align = "center", part = "all") %>% 
       bg(bg = "light blue", part = "header") %>% 
       bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
       bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
       width(width = 1.48, j = 1) %>% 
       width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
-      width(width = 1.14, j = ncol(flextable(cost.pivot())$body$dataset)) %>% 
       htmltools_value()
   })
   
@@ -572,14 +570,12 @@ server <- function(input, output, session) {
              border.left = fp_border(color = "black"),
              border.right = fp_border(color = "black"), part = "all") %>%
       bold(bold = TRUE, part = "header") %>% 
-      align(align = "left", part = "all", j = 1) %>% 
-      align(align = "center", part = "header", j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
+      align(align = "center", part = "all") %>% 
       bg(bg = "light blue", part = "header") %>% 
       bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
       bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
       width(width = 1.48, j = 1) %>% 
       width(width = 1, j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
-      width(width = 1.14, j = ncol(flextable(count.pivot())$body$dataset)) %>% 
       htmltools_value()
   })
   
@@ -845,13 +841,12 @@ server <- function(input, output, session) {
                  border.right = fp_border(color = "black"), part = "all") %>%
           bold(bold = TRUE, part = "header") %>% 
           align(align = "left", part = "all", j = 1) %>% 
-          align(align = "center", part = "header", j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
+          align(align = "center", part = "all") %>% 
           bg(bg = "light blue", part = "header") %>% 
           bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
           bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>% 
           width(width = 1.48, j = 1) %>% 
-          width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>% 
-          width(width = 1.14, j = ncol(flextable(cost.pivot())$body$dataset))
+          width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset))
       }
       
       # cbcs count flex ----
@@ -869,14 +864,12 @@ server <- function(input, output, session) {
                  border.left = fp_border(color = "black"),
                  border.right = fp_border(color = "black"), part = "all") %>%
           bold(bold = TRUE, part = "header") %>% 
-          align(align = "left", part = "all", j = 1) %>% 
-          align(align = "center", part = "header", j = 2:ncol(flextable(count.pivot())$body$dataset)) %>% 
+          align(align = "center", part = "all") %>% 
           bg(bg = "light blue", part = "header") %>% 
           bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
           bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>% 
           width(width = 1.48, j = 1) %>% 
-          width(width = 1, j = 2:4) %>% 
-          width(width = 1.14, j = ncol(flextable(count.pivot())$body$dataset))
+          width(width = 1, j = 2:ncol(flextable(count.pivot())$body$dataset))
       }
       
       # lms flex ----
