@@ -6,7 +6,9 @@ library(officer)
 
 source("locations2.R")
 
-df <- read_excel("data/1-3-20CBCS_CCBF_LOSS_RUN 010320.xls", skip = 6) %>%
+rm(stars.locations, jjkeller.locations, lms.locations)
+
+df <- read_excel("data/CBCS_CCBF_LOSS_RUN10-11.xls", skip = 6) %>%
   mutate(Coverage = recode(Coverage,
                              "ALBI"  = "AUTO",
                              "ALPD"  = "AUTO",

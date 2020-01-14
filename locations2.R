@@ -1787,3 +1787,95 @@ stars.locations <- data.frame( Location = c("FT MYERS",
                                )
 
 stars.locations$Location <- as.character(stars.locations$Location)
+
+
+cbcs.years <- data.frame(year = c((as.numeric(format(Sys.Date(), "%Y")) - 1), (format(Sys.Date(), "%Y"))),
+                    manager = c("TAMPA", "TAMPA", "FT MYERS - BROWARD", "FT MYERS - BROWARD", "ORLANDO", "ORLANDO", "JACKSONVILLE", "JACKSONVILLE", "SOUTH FL", "SOUTH FL"))
+
+cbcs.cat <- data.frame(year = c((as.numeric(format(Sys.Date(), "%Y")) - 1), (format(Sys.Date(), "%Y"))),
+                       Coverage = c("AUTO", "GL", "WC", "AUTO", "GL", "WC"))
+
+typology.cost <- data.frame(
+  col_keys = c(
+    "Location",
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "), 
+    paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "), 
+    paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+    "Fav/Unfav"
+  ),
+  
+  what = c(
+    "Claim Cost v LYR",
+    "Auto",
+    "Auto",
+    "GL",
+    "GL",
+    "WC",
+    "WC",
+    "Total",
+    "Total",
+    "Diff"
+  ),
+  
+  measure = c(
+    "Location",
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    "Fav/Unfav"
+  ),
+  
+  stringsAsFactors = FALSE )
+
+typology.count <- data.frame(
+  col_keys = c(
+    "Location",
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "), 
+    paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "), 
+    paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+    "Fav/Unfav"
+  ),
+  
+  what = c(
+    "Claim Count v LYR",
+    "Auto",
+    "Auto",
+    "GL",
+    "GL",
+    "WC",
+    "WC",
+    "Total",
+    "Total",
+    "Diff"
+  ),
+  
+  measure = c(
+    "Location",
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    "Fav/Unfav"
+  ),
+  
+  stringsAsFactors = FALSE )
+
