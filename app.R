@@ -816,25 +816,27 @@ server <- function(input, output, session) {
       
       if(input$allstate == "YES")
         
-        lms <- read.csv(input$file3$datapath) %>% 
-          left_join(lms.locations, "Org.Name")
+        lms <- read_excel(input$file3$datapath) %>% 
+          left_join(lms.locations, "Location") %>% 
+          filter(manager != "PLACEHOLDER")
       
       else
         
-        lms <- read.csv(input$file3$datapath) %>% 
-          left_join(lms.locations, "Org.Name") %>%
-          filter(manager == "FT MYERS - BROWARD")
+        lms <- read_excel(input$file3$datapath) %>% 
+          left_join(lms.locations, "Location") %>%
+          filter(manager != "PLACEHOLDER",
+                 manager == "FT MYERS - BROWARD")
       
-      lms %>% group_by(location, Title, Item.Status) %>%
-        summarise(n = length(Item.Status)) %>% 
-        ungroup %>% group_by(location, Title) %>% 
+      lms %>% group_by(location, `Employee Course`, `Course Enrollment Status`) %>%
+        summarise(n = length(`Course Enrollment Status`)) %>% 
+        ungroup %>% group_by(location, `Employee Course`) %>% 
         mutate(percent.compliant = n / sum(n) * 100) %>% 
         mutate(percent.compliant = round(percent.compliant, digits = 0),
                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
         select(-c(n)) %>% 
-        rename(`Status` = Item.Status,
+        rename(`Status` = `Course Enrollment Status`,
                Location = location) %>% 
-        pivot_wider(names_from = Title, values_from = percent.compliant)
+        pivot_wider(names_from = `Employee Course`, values_from = percent.compliant)
       
     } else {
       
@@ -842,57 +844,69 @@ server <- function(input, output, session) {
         
         if(input$allstate == "YES")
           
-          lms <- read.csv(input$file3$datapath) %>% 
-            left_join(lms.locations, "Org.Name")
+          lms <- read_excel(input$file3$datapath) %>% 
+            left_join(lms.locations, "Location") %>% 
+            filter(manager != "PLACEHOLDER")
         
         else
           
-          lms <- read.csv(input$file3$datapath) %>% 
-            left_join(lms.locations, "Org.Name") %>%
-            filter(manager == input$manager)
+          lms <- read_excel(input$file3$datapath) %>% 
+            left_join(lms.locations, "Location") %>%
+            filter(manager != "PLACEHOLDER",
+                   manager == input$manager)
         
-        lms %>% mutate(Item.Status = recode(Item.Status,
-                                            "In Progress" = "Incomplete",
-                                            "Not Started" = "Incomplete"),
-                       comp.binary = recode(Item.Status,
-                                            "Incomplete" = 0,
-                                            "Completed" = 1)) %>%
-          group_by(location, Title) %>%
+        lms %>% 
+          mutate(`Course Enrollment Status` = recode(`Course Enrollment Status`,
+                                                            "Enrolled" = "Incomplete",
+                                                            "In Progress" = "Incomplete"),
+                       comp.binary = recode(`Course Enrollment Status`,
+                                             "Incomplete" = 0,
+                                             "Completed" = 1)) %>%
+          group_by(manager, location, `Employee Course`) %>%
           summarise(num.comp = sum(comp.binary),
                     total = length(comp.binary),
                     percent.compliant = num.comp/total * 100) %>% 
-          select(location, Title, percent.compliant) %>% 
-          rename(Location = location) %>% 
-          mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
-          pivot_wider(names_from = Title, values_from = percent.compliant)
+          select(location, `Employee Course`, percent.compliant) %>% 
+          mutate(percent.compliant = round(percent.compliant, digits = 0),
+                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>% 
+          pivot_wider(names_from = `Employee Course`, values_from = percent.compliant) %>% 
+          ungroup() %>% 
+          select(-c(manager)) %>% 
+          rename(Location = location)
         
       } else {
         
         if(input$allstate == "YES")
           
-          lms <- read.csv(input$file3$datapath) %>% 
-            left_join(lms.locations, "Org.Name")
+          lms <- read_excel(input$file3$datapath) %>% 
+            left_join(lms.locations, "Location") %>% 
+            filter(manager != "PLACEHOLDER")
         
         else
           
-          lms <- read.csv(input$file3$datapath) %>% 
-            left_join(lms.locations, "Org.Name") %>%
-            filter(manager == input$manager)
+          lms <- read_excel(input$file3$datapath) %>% 
+            left_join(lms.locations, "Location") %>%
+            filter(manager != "PLACEHOLDER",
+                   manager == input$manager)
         
-        lms %>% mutate(Item.Status = recode(Item.Status,
-                                            "In Progress" = "Incomplete",
-                                            "Not Started" = "Incomplete"),
-                       comp.binary = recode(Item.Status,
+        lms %>% 
+          mutate(`Course Enrollment Status` = recode(`Course Enrollment Status`,
+                                                           "Enrolled" = "Incomplete",
+                                                           "In Progress" = "Incomplete"),
+                       comp.binary = recode(`Course Enrollment Status`,
                                             "Incomplete" = 0,
                                             "Completed" = 1)) %>%
-          group_by(location, Title) %>%
+          group_by(manager, location, `Employee Course`) %>%
           summarise(num.comp = sum(comp.binary),
                     total = length(comp.binary),
                     percent.compliant = num.comp/total * 100) %>% 
-          select(location, Title, percent.compliant) %>% 
-          rename(Location = location) %>% 
-          mutate(percent.compliant = paste(round(percent.compliant, 0), "%",sep = "")) %>% 
-          pivot_wider(names_from = Title, values_from = percent.compliant)
+          select(location, `Employee Course`, percent.compliant) %>% 
+          mutate(percent.compliant = round(percent.compliant, digits = 0),
+                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>% 
+          pivot_wider(names_from = `Employee Course`, values_from = percent.compliant) %>% 
+          ungroup() %>% 
+          select(-c(manager)) %>% 
+          rename(Location = location)
         
       }
       
