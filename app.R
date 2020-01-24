@@ -578,53 +578,102 @@ server <- function(input, output, session) {
   cbcs.ltr.df <- reactive({
     req(input$file2)
 
-    df <- read_excel(input$file2$datapath, skip = 6) %>%
-      mutate(Coverage = recode(Coverage,
-                               "ALBI"  = "AUTO",
-                               "ALPD"  = "AUTO",
-                               "ALAPD" = "AUTO",
-                               "GLPD"  = "GL"  ,
-                               "GLBI"  = "GL"),
-             occ.year = year(`Occ Date`)) %>%
-      rename(Dept.Name = `Dept Name`) %>%
-      left_join(cbcs.locations, by = "Dept.Name") %>%
-      filter(manager != "PLACEHOLDER")
+    if(input$manager == "JACKSONVILLE") {
 
-    cbcs.locations <- df %>%
-      select(`Loc Name`, manager) %>%
-      unique() %>%
-      left_join(cbcs.years, "manager") %>%
-      left_join(cbcs.cat, "year") %>%
-      rename(occ.year = year) %>%
-      mutate(occ.year = as.character(occ.year),
-             occ.year = as.numeric(occ.year))
+      df <- read_excel(input$file2$datapath, skip = 6) %>%
+        mutate(Coverage = recode(Coverage,
+                                 "ALBI"  = "GL",
+                                 "ALPD"  = "PD",
+                                 "ALAPD" = "PD",
+                                 "GLPD"  = "PD"  ,
+                                 "GLBI"  = "GL"),
+               occ.year = year(`Occ Date`)) %>%
+        rename(Dept.Name = `Dept Name`) %>%
+        left_join(cbcs.locations, by = "Dept.Name") %>%
+        filter(manager != "PLACEHOLDER")
 
-    prior.year <- df %>%
-      filter(occ.year == as.numeric(format(Sys.Date(), "%Y")) - 1,
-             `Occ Date` <= input$dateRange[2] - 366) %>%
-      select(occ.year, `Loc Name`, Coverage, Incurred)
+      cbcs.locations <- df %>%
+        select(`Loc Name`, manager) %>%
+        unique() %>%
+        left_join(cbcs.years, "manager") %>%
+        left_join(cbcs.cat, "year") %>%
+        rename(occ.year = year) %>%
+        mutate(occ.year = as.character(occ.year),
+               occ.year = as.numeric(occ.year))
 
-    present.year <- df %>%
-      filter(occ.year == format(Sys.Date(), "%Y"),
-             `Occ Date` <= input$dateRange[1]) %>%
-      select(occ.year, `Loc Name`, Coverage, Incurred)
+      prior.year <- df %>%
+        filter(occ.year == as.numeric(format(Sys.Date(), "%Y")) - 1,
+               `Occ Date` <= input$dateRange[2] - 366) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred)
 
-    year <- cbcs.locations %>%
-      left_join(prior.year, by = c("Loc Name", "Coverage", "occ.year"))
+      present.year <- df %>%
+        filter(occ.year == format(Sys.Date(), "%Y"),
+               `Occ Date` <= input$dateRange[1]) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred)
 
-    year <- year %>%
-      left_join(present.year, by = c("Loc Name", "Coverage", "occ.year")) %>%
-      mutate(Incurred = pmax(Incurred.x, Incurred.y, na.rm = TRUE)) %>%
-      select(-c(Incurred.x, Incurred.y))
+      year <- cbcs.locations %>%
+        left_join(prior.year, by = c("Loc Name", "Coverage", "occ.year"))
 
-    if(input$allstate == "YES")
-
-      year.loc <- year
-
-    else
+      year <- year %>%
+        left_join(present.year, by = c("Loc Name", "Coverage", "occ.year")) %>%
+        mutate(Incurred = pmax(Incurred.x, Incurred.y, na.rm = TRUE)) %>%
+        select(-c(Incurred.x, Incurred.y))
 
       year.loc <- year %>%
         filter(manager == input$manager)
+
+    } else {
+
+
+      df <- read_excel(input$file2$datapath, skip = 6) %>%
+        mutate(Coverage = recode(Coverage,
+                                 "ALBI"  = "AUTO",
+                                 "ALPD"  = "AUTO",
+                                 "ALAPD" = "AUTO",
+                                 "GLPD"  = "GL"  ,
+                                 "GLBI"  = "GL"),
+               occ.year = year(`Occ Date`)) %>%
+        rename(Dept.Name = `Dept Name`) %>%
+        left_join(cbcs.locations, by = "Dept.Name") %>%
+        filter(manager != "PLACEHOLDER")
+
+      cbcs.locations <- df %>%
+        select(`Loc Name`, manager) %>%
+        unique() %>%
+        left_join(cbcs.years, "manager") %>%
+        left_join(cbcs.cat, "year") %>%
+        rename(occ.year = year) %>%
+        mutate(occ.year = as.character(occ.year),
+               occ.year = as.numeric(occ.year))
+
+      prior.year <- df %>%
+        filter(occ.year == as.numeric(format(Sys.Date(), "%Y")) - 1,
+               `Occ Date` <= input$dateRange[2] - 366) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred)
+
+      present.year <- df %>%
+        filter(occ.year == format(Sys.Date(), "%Y"),
+               `Occ Date` <= input$dateRange[1]) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred)
+
+      year <- cbcs.locations %>%
+        left_join(prior.year, by = c("Loc Name", "Coverage", "occ.year"))
+
+      year <- year %>%
+        left_join(present.year, by = c("Loc Name", "Coverage", "occ.year")) %>%
+        mutate(Incurred = pmax(Incurred.x, Incurred.y, na.rm = TRUE)) %>%
+        select(-c(Incurred.x, Incurred.y))
+
+      if(input$allstate == "YES")
+
+        year.loc <- year
+
+      else
+
+        year.loc <- year %>%
+        filter(manager == input$manager)
+
+    }
 
   })
 
