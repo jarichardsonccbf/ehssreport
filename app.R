@@ -596,7 +596,7 @@ server <- function(input, output, session) {
         select(`Loc Name`, manager) %>%
         unique() %>%
         left_join(cbcs.years, "manager") %>%
-        left_join(cbcs.cat, "year") %>%
+        left_join(cbcs.cat.jax, "year") %>%
         rename(occ.year = year) %>%
         mutate(occ.year = as.character(occ.year),
                occ.year = as.numeric(occ.year))
@@ -623,7 +623,6 @@ server <- function(input, output, session) {
         filter(manager == input$manager)
 
     } else {
-
 
       df <- read_excel(input$file2$datapath, skip = 6) %>%
         mutate(Coverage = recode(Coverage,
