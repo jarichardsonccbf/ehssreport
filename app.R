@@ -596,7 +596,7 @@ server <- function(input, output, session) {
         select(`Loc Name`, manager) %>%
         unique() %>%
         left_join(cbcs.years, "manager") %>%
-        left_join(cbcs.cat, "year") %>%
+        left_join(cbcs.cat.jax, "year") %>%
         rename(occ.year = year) %>%
         mutate(occ.year = as.character(occ.year),
                occ.year = as.numeric(occ.year))
@@ -623,7 +623,6 @@ server <- function(input, output, session) {
         filter(manager == input$manager)
 
     } else {
-
 
       df <- read_excel(input$file2$datapath, skip = 6) %>%
         mutate(Coverage = recode(Coverage,
@@ -682,6 +681,8 @@ server <- function(input, output, session) {
 
   ltr.cost <- reactive({
 
+    if(input$manager == "JACKSONVILLE") {
+
     ytd.location.totals.cost <- cbcs.ltr.df() %>%
       group_by(occ.year, `Loc Name`) %>%
       summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
@@ -700,20 +701,20 @@ server <- function(input, output, session) {
       replace(., is.na(.), 0) %>%
       mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
       `colnames<-`(c('Location',
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                     paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
                      'Fav/Unfav')) %>%
       select(Location,
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
              paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+             paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
              paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
@@ -732,11 +733,67 @@ server <- function(input, output, session) {
 
     ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
 
+    } else {
+
+      ytd.location.totals.cost <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`) %>%
+        summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
+        mutate(Coverage = paste(occ.year, "Total")) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
+        ungroup()
+
+      year.loc.cost <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`, Coverage) %>%
+        summarise(Incurred = sum(Incurred)) %>%
+        ungroup()
+
+      ytd.comp.cost <- rbind(as.data.frame(year.loc.cost), as.data.frame(ytd.location.totals.cost)) %>%
+        ungroup() %>%
+        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
+        replace(., is.na(.), 0) %>%
+        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
+        `colnames<-`(c('Location',
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+                       'Fav/Unfav')) %>%
+        select(Location,
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+               `Fav/Unfav`)
+
+      cost.totals <- ytd.comp.cost %>%
+        select(-c(Location)) %>%
+        summarise_all(sum, na.rm = TRUE) %>%
+        mutate(Location = "Total") %>%
+        select(Location, everything())
+
+      ytd.comp.cost <- rbind(ytd.comp.cost, cost.totals)
+
+      ytd.comp.cost.r <- apply(ytd.comp.cost[2:ncol(ytd.comp.cost)], 2, dollar)
+
+      ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
+
+    }
+
   })
 
   # cbcs ltr count ----
 
   ltr.count <- reactive({
+
+    if(input$manager == "JACKSONVILLE") {
 
     ytd.location.totals.count <- cbcs.ltr.df() %>%
       group_by(occ.year, `Loc Name`) %>%
@@ -756,20 +813,20 @@ server <- function(input, output, session) {
       replace(., is.na(.), 0) %>%
       mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
       `colnames<-`(c('Location',
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                     paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
                      paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
                      paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
                      'Fav/Unfav')) %>%
       select(Location,
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
              paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+             paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
              paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
              paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
@@ -783,6 +840,56 @@ server <- function(input, output, session) {
       select(Location, everything())
 
     ytd.comp.count <- rbind(ytd.comp.count, count.totals)
+
+    } else {
+
+      ytd.location.totals.count <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`) %>%
+        summarise(Incurred = sum(!is.na(Incurred))) %>%
+        mutate(Coverage = paste(occ.year, "Total")) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
+        ungroup()
+
+      year.loc.count <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`, Coverage) %>%
+        summarise(Incurred = sum(!is.na(Incurred))) %>%
+        ungroup()
+
+      ytd.comp.count <- rbind(as.data.frame(year.loc.count), as.data.frame(ytd.location.totals.count)) %>%
+        ungroup() %>%
+        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
+        replace(., is.na(.), 0) %>%
+        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
+        `colnames<-`(c('Location',
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+                       'Fav/Unfav')) %>%
+        select(Location,
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "AUTO", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "AUTO", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+               `Fav/Unfav`)
+
+      count.totals <- ytd.comp.count %>%
+        select(-c(Location)) %>%
+        summarise_all(sum, na.rm = TRUE) %>%
+        mutate(Location = "Total") %>%
+        select(Location, everything())
+
+      ytd.comp.count <- rbind(ytd.comp.count, count.totals)
+
+    }
 
   })
 
