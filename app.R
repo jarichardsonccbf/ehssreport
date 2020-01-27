@@ -1144,6 +1144,7 @@ server <- function(input, output, session) {
       select(-c(manager))
 
     col.tots <- stars.pivot %>%
+      filter(`Count of` == "Total") %>%
       select(-c(Location, `Count of`)) %>%
       mutate(Total = as.numeric(Total)) %>%
       summarise_all(sum, na.rm = TRUE) %>%
