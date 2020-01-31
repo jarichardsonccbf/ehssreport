@@ -1,6 +1,7 @@
 # CBCS ----
 
 cbcs.locations <- data.frame(Dept.Name = c("Aptive Environmental, LLC; Aptive Environmental Inc",
+                                           "GAINESVILLE - ES",
                                            "LAKELAND - FLEET",
                                            "DUNEDIN - SALES",
                                            "LAKELAND - DIST",
@@ -86,6 +87,7 @@ cbcs.locations <- data.frame(Dept.Name = c("Aptive Environmental, LLC; Aptive En
                                            "SEBRING - SALES"
 ),
 manager = c("PLACEHOLDER",
+            "JACKSONVILLE",
             "TAMPA",
             "TAMPA",
             "TAMPA",
@@ -2762,8 +2764,8 @@ typology.count <- data.frame(
 
   what = c(
     "Claim Count v LYR",
-    "Auto",
-    "Auto",
+    "AUTO",
+    "AUTO",
     "GL",
     "GL",
     "WC",
@@ -2846,7 +2848,9 @@ typology.cost.jax <- data.frame(
 
   stringsAsFactors = FALSE )
 
-typology.count <- data.frame(
+
+
+typology.count.jax <- data.frame(
   col_keys = c(
     "Location",
     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),

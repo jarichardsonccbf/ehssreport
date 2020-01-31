@@ -354,228 +354,6 @@ server <- function(input, output, session) {
       htmltools_value()
   })
 
-  # DF for CBCS pivots ----
-
-  cbcs.pivots.df <- reactive({
-    req(input$file2)
-
-    if(input$manager == "JACKSONVILLE") {
-
-      df <- read_excel(input$file2$datapath, skip = 6) %>%
-          rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
-        mutate(Coverage = recode(Coverage,
-                                 "ALBI"  = "GL",
-                                 "ALPD"  = "PD",
-                                 "ALAPD" = "PD",
-                                 "GLPD"  = "PD"  ,
-                                 "GLBI"  = "GL"),
-               `Loc Name` = recode(`Loc Name`,
-                                   "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
-               occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
-          left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER") %>%
-        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
-
-      cbcs.locations <- df %>%
-        select(`Loc Name`, manager) %>%
-        unique()
-
-      coverage <- data.frame(Coverage = c("GL", "PD", "WC"), loc = rbind(cbcs.locations, cbcs.locations, cbcs.locations)) %>%
-        rename(manager = loc.manager,
-               Loc.Name = loc.Loc.Name) %>%
-        arrange(manager, Loc.Name, Coverage)
-
-      cbcs.pivots <- df %>%
-        filter(occ.year == format(Sys.Date(), "%Y")) %>%
-        select(manager, `Loc Name`, Coverage, Incurred) %>%
-        rename(Loc.Name = `Loc Name`)
-
-      cbcs.pivots <- coverage %>%
-        left_join(cbcs.pivots, c("manager", "Loc.Name", "Coverage")) %>%
-        filter(manager == input$manager)
-
-    } else {
-
-    if(input$allstate == "YES") {
-
-      df <- read_excel(input$file2$datapath, skip = 6) %>%
-        rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
-        mutate(Coverage = recode(Coverage,
-                                 "ALBI"  = "Auto",
-                                 "ALPD"  = "Auto",
-                                 "ALAPD" = "Auto",
-                                 "GLPD"  = "GL"  ,
-                                 "GLBI"  = "GL"),
-               `Loc Name` = recode(`Loc Name`,
-                                   "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
-               occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
-        left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER") %>%
-        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
-
-      cbcs.locations <- df %>%
-        select(`Loc Name`, manager) %>%
-        unique()
-
-      coverage <- data.frame(Coverage = c("Auto", "GL", "WC"), loc = rbind(cbcs.locations, cbcs.locations, cbcs.locations)) %>%
-        rename(manager = loc.manager,
-               Loc.Name = loc.Loc.Name) %>%
-        arrange(manager, Loc.Name, Coverage)
-
-      cbcs.pivots <- df %>%
-        filter(occ.year == format(Sys.Date(), "%Y")) %>%
-        select(manager, `Loc Name`, Coverage, Incurred) %>%
-        rename(Loc.Name = `Loc Name`)
-
-      cbcs.pivots <- coverage %>%
-        left_join(cbcs.pivots, c("manager", "Loc.Name", "Coverage"))
-
-    } else {
-
-      df <- read_excel(input$file2$datapath, skip = 6) %>%
-        rename(Dept.Name = `Dept Name`) %>%  # Only if using Xls
-        mutate(Coverage = recode(Coverage,
-                                 "ALBI"  = "Auto",
-                                 "ALPD"  = "Auto",
-                                 "ALAPD" = "Auto",
-                                 "GLPD"  = "GL"  ,
-                                 "GLBI"  = "GL"),
-               `Loc Name` = recode(`Loc Name`,
-                                   "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
-               occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
-        left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER") %>%
-        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
-
-      cbcs.locations <- df %>%
-        select(`Loc Name`, manager) %>%
-        unique()
-
-      coverage <- data.frame(Coverage = c("Auto", "GL", "WC"), loc = rbind(cbcs.locations, cbcs.locations, cbcs.locations)) %>%
-        rename(manager = loc.manager,
-               Loc.Name = loc.Loc.Name) %>%
-        arrange(manager, Loc.Name, Coverage)
-
-      cbcs.pivots <- df %>%
-        filter(occ.year == format(Sys.Date(), "%Y")) %>%
-        select(manager, `Loc Name`, Coverage, Incurred) %>%
-        rename(Loc.Name = `Loc Name`)
-
-      cbcs.pivots <- coverage %>%
-        left_join(cbcs.pivots, c("manager", "Loc.Name", "Coverage")) %>%
-        filter(manager == input$manager)
-
-      }
-    }
-  })
-
-  # Cost Pivot ----
-
-  cost.pivot <- reactive({
-
-    costs <- cbcs.pivots.df() %>%
-        group_by(Loc.Name, Coverage) %>%
-        summarise(Incurred = sum(Incurred)) %>%
-        ungroup() %>%
-        spread(Coverage, Incurred) %>%
-        replace(., is.na(.), 0) %>%
-        mutate(Totals = rowSums(.[-1])) %>%
-      rename(`Loc Name` = Loc.Name)
-
-      costs.tot <- costs %>%
-        select(-c(`Loc Name`)) %>%
-        summarise_all(sum) %>%
-        mutate(Total = "Total") %>%
-        select(Total, everything())
-
-      colnames(costs.tot) <- colnames(costs)
-
-      # claim cost table
-
-      claim.cost <- rbind(costs, costs.tot)
-
-      claim.cost.r <- apply(claim.cost[2:ncol(claim.cost)], 2, dollar)
-
-      claim.cost <- cbind(claim.cost[1], as.data.frame(as.matrix(claim.cost.r))) %>%
-        rename(Location = `Loc Name`)
-
-  })
-
-  output$cost.pivot <- renderUI({
-
-    costs <- cost.pivot() %>%
-      flextable() %>%
-      add_header_lines(values = "Claim Cost", top = TRUE) %>%
-      border_remove() %>%
-      border(border.top = fp_border(color = "black"),
-             border.bottom = fp_border(color = "black"),
-             border.left = fp_border(color = "black"),
-             border.right = fp_border(color = "black"), part = "all") %>%
-      bold(bold = TRUE, part = "header") %>%
-      align(align = "center", part = "all") %>%
-      align(align = "left", part = "all", j = 1) %>%
-      bg(bg = "light blue", part = "header") %>%
-      bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>%
-      bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>%
-      width(width = 1.48, j = 1) %>%
-      width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset)) %>%
-      htmltools_value()
-  })
-
-  # Count Pivot----
-
-  count.pivot <- reactive({
-
-      counts <- cbcs.pivots.df() %>%
-        group_by(Loc.Name, Coverage) %>%
-        summarise(Incurred = sum(!is.na(Incurred))) %>%
-        spread(Coverage, Incurred) %>%
-        replace(., is.na(.), 0) %>%
-        ungroup() %>%
-        mutate(Totals = rowSums(.[-1])) %>%
-        rename(`Loc Name` = Loc.Name)
-
-      counts.tot <- counts %>%
-        select(-c(`Loc Name`)) %>%
-        summarise_all(sum) %>%
-        mutate(Totalr = "Total") %>%
-        select(Totalr, everything())
-
-      colnames(counts.tot) <- colnames(counts)
-
-     # claim count table
-      claim.count <- rbind(counts,counts.tot)
-
-      format_count <- function (x) {format(round(x, 0), nsmall = 0)}
-
-      claim.count.r <- apply(claim.count[2:ncol(claim.count)], 2, format_count)
-
-      claim.count <- cbind(claim.count[1], as.data.frame(as.matrix(claim.count.r))) %>%
-        rename(Location = `Loc Name`)
-
-  })
-
-  output$count.pivot <- renderUI({
-    counts <- count.pivot() %>%
-      flextable() %>%
-      add_header_lines(values = "Claim Count", top = TRUE) %>%
-      border_remove() %>%
-      border(border.top = fp_border(color = "black"),
-             border.bottom = fp_border(color = "black"),
-             border.left = fp_border(color = "black"),
-             border.right = fp_border(color = "black"), part = "all") %>%
-      bold(bold = TRUE, part = "header") %>%
-      align(align = "center", part = "all") %>%
-      align(align = "left", part = "all", j = 1) %>%
-      bg(bg = "light blue", part = "header") %>%
-      bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>%
-      bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>%
-      width(width = 1.48, j = 1) %>%
-      width(width = 1, j = 2:ncol(flextable(count.pivot())$body$dataset)) %>%
-      htmltools_value()
-  })
-
-
   # DF for CBCS ltr pivots ----
 
   cbcs.ltr.df <- reactive({
@@ -900,10 +678,12 @@ server <- function(input, output, session) {
 
   output$ytd.cost <- renderUI({
 
+    if(input$manager == "JACKSONVILLE") {
+
     ltr.cost() %>%
       mutate_if(is.numeric, round, 0) %>%
       flextable() %>%
-      set_header_df(mapping = typology.cost, key = "col_keys") %>%
+      set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
       border_remove() %>%
       border(border.top = fp_border(color = "black"),
              border.bottom = fp_border(color = "black"),
@@ -925,9 +705,66 @@ server <- function(input, output, session) {
       width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
       htmltools_value()
 
+    } else {
+
+      ltr.cost() %>%
+        mutate_if(is.numeric, round, 0) %>%
+        flextable() %>%
+        set_header_df(mapping = typology.cost, key = "col_keys") %>%
+        border_remove() %>%
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        align(align = "center", part = "all") %>%
+        align(align = "left", part = "all", j = 1) %>%
+        font(fontname = "arial", part = "all") %>%
+        fontsize(size = 11, part = "all") %>%
+        merge_at(i = 1, j = 2:3, part = "header") %>%
+        merge_at(i = 1, j = 4:5, part = "header") %>%
+        merge_at(i = 1, j = 6:7, part = "header") %>%
+        merge_at(i = 1, j = 8:9, part = "header") %>%
+        bold(bold = TRUE, part = "header") %>%
+        bg(bg = "light blue", part = "header") %>%
+        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+        width(width = 1.48, j = 1) %>%
+        width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
+        htmltools_value()
+
+    }
+
   })
 
   output$ytd.count <- renderUI({
+
+    if(input$manager == "JACKSONVILLE") {
+
+    ltr.count() %>%
+      flextable() %>%
+      set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
+      border_remove() %>%
+      border(border.top = fp_border(color = "black"),
+             border.bottom = fp_border(color = "black"),
+             border.left = fp_border(color = "black"),
+             border.right = fp_border(color = "black"), part = "all") %>%
+      align(align = "center", part = "all") %>%
+      align(align = "left", part = "all", j = 1) %>%
+      font(fontname = "arial", part = "all") %>%
+      fontsize(size = 11, part = "all") %>%
+      merge_at(i = 1, j = 2:3, part = "header") %>%
+      merge_at(i = 1, j = 4:5, part = "header") %>%
+      merge_at(i = 1, j = 6:7, part = "header") %>%
+      merge_at(i = 1, j = 8:9, part = "header") %>%
+      bold(bold = TRUE, part = "header") %>%
+      bg(bg = "light blue", part = "header") %>%
+      bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+      bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+      width(width = 1.48, j = 1) %>%
+      width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
+      htmltools_value()
+
+  } else {
 
     ltr.count() %>%
       flextable() %>%
@@ -952,6 +789,8 @@ server <- function(input, output, session) {
       width(width = 1.48, j = 1) %>%
       width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
       htmltools_value()
+
+  }
 
   })
 
@@ -1237,55 +1076,6 @@ server <- function(input, output, session) {
           width(width = 5.59, j = 2)
       }
 
-      # cbcs cost flex ----
-      if (is.null(input$file2)) {
-
-        NULL
-
-      } else {
-
-        flextable_cbcs.cost <- flextable(cost.pivot()) %>%
-          add_header_lines(values = "Claim Cost", top = TRUE) %>%
-          border_remove() %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all") %>%
-          bold(bold = TRUE, part = "header") %>%
-          align(align = "left", part = "all", j = 1) %>%
-          align(align = "center", part = "all") %>%
-          align(align = "left", part = "all", j = 1) %>%
-          bg(bg = "light blue", part = "header") %>%
-          bg(bg = "light blue", part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>%
-          bold(bold = TRUE, part = "body", i = nrow(flextable(cost.pivot())$body$dataset)) %>%
-          width(width = 1.48, j = 1) %>%
-          width(width = 1, j = 2:ncol(flextable(cost.pivot())$body$dataset))
-      }
-
-      # cbcs count flex ----
-      if (is.null(input$file2)) {
-
-        NULL
-
-      } else {
-
-        flextable_cbcs.count <- flextable(count.pivot()) %>%
-          add_header_lines(values = "Claim Count", top = TRUE) %>%
-          border_remove() %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all") %>%
-          bold(bold = TRUE, part = "header") %>%
-          align(align = "center", part = "all") %>%
-          align(align = "left", part = "all", j = 1) %>%
-          bg(bg = "light blue", part = "header") %>%
-          bg(bg = "light blue", part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>%
-          bold(bold = TRUE, part = "body", i = nrow(flextable(count.pivot())$body$dataset)) %>%
-          width(width = 1.48, j = 1) %>%
-          width(width = 1, j = 2:ncol(flextable(count.pivot())$body$dataset))
-      }
-
       # cbcs cost ltr flex ----
       if (is.null(input$file2)) {
 
@@ -1293,11 +1083,13 @@ server <- function(input, output, session) {
 
       } else {
 
+        if(input$manager == "JACKSONVILLE") {
+
         flextable_ltr.cost <- ltr.cost() %>%
           mutate_if(is.numeric, round, 0)
 
         flextable_ltr.cost <- flextable(flextable_ltr.cost) %>%
-          set_header_df(mapping = typology.cost, key = "col_keys") %>%
+          set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
           border_remove() %>%
           border(border.top = fp_border(color = "black"),
                  border.bottom = fp_border(color = "black"),
@@ -1318,6 +1110,36 @@ server <- function(input, output, session) {
           width(width = 1.48, j = 1) %>%
           width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset))
 
+        } else {
+
+          flextable_ltr.cost <- ltr.cost() %>%
+            mutate_if(is.numeric, round, 0)
+
+          flextable_ltr.cost <- flextable(flextable_ltr.cost) %>%
+            set_header_df(mapping = typology.cost, key = "col_keys") %>%
+            border_remove() %>%
+            border(border.top = fp_border(color = "black"),
+                   border.bottom = fp_border(color = "black"),
+                   border.left = fp_border(color = "black"),
+                   border.right = fp_border(color = "black"), part = "all") %>%
+            align(align = "center", part = "all") %>%
+            align(align = "left", part = "all", j = 1) %>%
+            font(fontname = "arial", part = "all") %>%
+            fontsize(size = 11, part = "all") %>%
+            merge_at(i = 1, j = 2:3, part = "header") %>%
+            merge_at(i = 1, j = 4:5, part = "header") %>%
+            merge_at(i = 1, j = 6:7, part = "header") %>%
+            merge_at(i = 1, j = 8:9, part = "header") %>%
+            bold(bold = TRUE, part = "header") %>%
+            bg(bg = "light blue", part = "header") %>%
+            bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+            bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+            width(width = 1.48, j = 1) %>%
+            width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset))
+
+
+        }
+
       }
 
       # cbcs count ltr flex ----
@@ -1327,9 +1149,11 @@ server <- function(input, output, session) {
 
       } else {
 
+        if(input$manager == "JACKSONVILLE") {
+
         flextable_ltr.count <- ltr.count() %>%
           flextable() %>%
-          set_header_df(mapping = typology.count, key = "col_keys") %>%
+          set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
           border_remove() %>%
           border(border.top = fp_border(color = "black"),
                  border.bottom = fp_border(color = "black"),
@@ -1349,6 +1173,33 @@ server <- function(input, output, session) {
           bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
           width(width = 1.48, j = 1) %>%
           width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset))
+
+        } else {
+
+          flextable_ltr.count <- ltr.count() %>%
+            flextable() %>%
+            set_header_df(mapping = typology.count, key = "col_keys") %>%
+            border_remove() %>%
+            border(border.top = fp_border(color = "black"),
+                   border.bottom = fp_border(color = "black"),
+                   border.left = fp_border(color = "black"),
+                   border.right = fp_border(color = "black"), part = "all") %>%
+            align(align = "center", part = "all") %>%
+            align(align = "left", part = "all", j = 1) %>%
+            font(fontname = "arial", part = "all") %>%
+            fontsize(size = 11, part = "all") %>%
+            merge_at(i = 1, j = 2:3, part = "header") %>%
+            merge_at(i = 1, j = 4:5, part = "header") %>%
+            merge_at(i = 1, j = 6:7, part = "header") %>%
+            merge_at(i = 1, j = 8:9, part = "header") %>%
+            bold(bold = TRUE, part = "header") %>%
+            bg(bg = "light blue", part = "header") %>%
+            bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+            bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+            width(width = 1.48, j = 1) %>%
+            width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset))
+
+        }
 
       }
 
@@ -1451,38 +1302,7 @@ server <- function(input, output, session) {
           )
       }
 
-      # Claim cost/count slides (collapse to only one slide) ----
-      if (exists("flextable_cbcs.count") & exists("flextable_cbcs.cost")) {
 
-        example_pp <- example_pp %>% add_slide(layout = "Title and Content", master = "Office Theme") %>%
-          ph_with(
-            block_list(
-              fpar(fp_p = fp_par(text.align = "center"),
-                   ftext(paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y")),
-                         prop = fp_text(font.size = 20)
-                   )
-              )
-            ),
-            location = ph_location_type(type = "title")) %>%
-          ph_with_flextable(
-            value = flextable_cbcs.cost,
-            type = "body"
-          ) %>% add_slide(layout = "Title and Content", master = "Office Theme") %>%
-          ph_with(
-            block_list(
-              fpar(fp_p = fp_par(text.align = "center"),
-                   ftext(paste(str_to_title(input$manager), "Territory - Claim Cost & Count -", format(Sys.Date(), format ="%m/%d/%Y")),
-                         prop = fp_text(font.size = 20)
-                   )
-              )
-            ),
-            location = ph_location_type(type = "title")) %>%
-          ph_with_flextable(
-            value = flextable_cbcs.count,
-            type = "body"
-          )
-
-      }
 
       # Claim cost/count ltr slides (collapse to only one slide) ----
       if (exists("flextable_ltr.cost") & exists("flextable_ltr.count")) {
