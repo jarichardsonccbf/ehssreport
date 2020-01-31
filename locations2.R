@@ -2892,5 +2892,47 @@ typology.count.jax <- data.frame(
 
   stringsAsFactors = FALSE )
 
+typology.count.jax <- data.frame(
+  col_keys = c(
+    "Location",
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+    paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+    paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+    "Fav/Unfav"
+  ),
+
+  what = c(
+    "Claim Count v LYR",
+    "GL",
+    "GL",
+    "PD",
+    "PD",
+    "WC",
+    "WC",
+    "Total",
+    "Total",
+    "Diff"
+  ),
+
+  measure = c(
+    "Location",
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    as.numeric(format(Sys.Date(), "%Y")) - 1,
+    as.numeric(format(Sys.Date(), "%Y")),
+    "Fav/Unfav"
+  ),
+
+  stringsAsFactors = FALSE )
+
 cbcs.pivot.cat.jax <- data.frame(year = c((as.numeric(format(Sys.Date(), "%Y")) - 1), (format(Sys.Date(), "%Y"))),
                              Coverage = c("GL", "PD", "WC", "GL", "PD", "WC"))
