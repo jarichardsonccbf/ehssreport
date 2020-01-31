@@ -1,6 +1,7 @@
 # CBCS ----
 
 cbcs.locations <- data.frame(Dept.Name = c("Aptive Environmental, LLC; Aptive Environmental Inc",
+                                           "LAKELAND - FLEET",
                                            "DUNEDIN - SALES",
                                            "LAKELAND - DIST",
                                            "LAKELAND - SALES",
@@ -85,6 +86,7 @@ cbcs.locations <- data.frame(Dept.Name = c("Aptive Environmental, LLC; Aptive En
                                            "SEBRING - SALES"
 ),
 manager = c("PLACEHOLDER",
+            "TAMPA",
             "TAMPA",
             "TAMPA",
             "TAMPA",

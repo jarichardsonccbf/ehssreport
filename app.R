@@ -373,7 +373,8 @@ server <- function(input, output, session) {
                                    "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
                occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
           left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER")
+        filter(manager != "PLACEHOLDER") %>%
+        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
 
       cbcs.locations <- df %>%
         select(`Loc Name`, manager) %>%
@@ -409,7 +410,8 @@ server <- function(input, output, session) {
                                    "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
                occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
         left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER")
+        filter(manager != "PLACEHOLDER") %>%
+        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
 
       cbcs.locations <- df %>%
         select(`Loc Name`, manager) %>%
@@ -442,7 +444,8 @@ server <- function(input, output, session) {
                                    "TAMPA CABOT WAREHOUSE" = "TAMPA CABOT"),
                occ.year = year(as.Date(`Occ Date`, format = "%m/%d/%Y"))) %>%
         left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER")
+        filter(manager != "PLACEHOLDER") %>%
+        filter(`Occ Date` >= input$dateRange[1] & `Occ Date` <= input$dateRange[2])
 
       cbcs.locations <- df %>%
         select(`Loc Name`, manager) %>%
@@ -608,7 +611,7 @@ server <- function(input, output, session) {
 
       present.year <- df %>%
         filter(occ.year == format(Sys.Date(), "%Y"),
-               `Occ Date` <= input$dateRange[1]) %>%
+               `Occ Date` <= input$dateRange[2]) %>%
         select(occ.year, `Loc Name`, Coverage, Incurred)
 
       year <- cbcs.locations %>%
@@ -652,7 +655,7 @@ server <- function(input, output, session) {
 
       present.year <- df %>%
         filter(occ.year == format(Sys.Date(), "%Y"),
-               `Occ Date` <= input$dateRange[1]) %>%
+               `Occ Date` <= input$dateRange[2]) %>%
         select(occ.year, `Loc Name`, Coverage, Incurred)
 
       year <- cbcs.locations %>%
