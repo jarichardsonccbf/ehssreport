@@ -92,10 +92,8 @@ ui <- fluidPage(
       selectInput("manager", label = h4("Region"),
                   choices = list("TAMPA",
                                  "ORLANDO",
-                                 "SOUTH FL",
                                  "JACKSONVILLE",
-                                 "TAMPA",
-                                 "FT MYERS - BROWARD")),
+                                 "BROWARD")),
 
       # Date range for CBCS Desc ----
       dateRangeInput('dateRange',
@@ -464,55 +462,55 @@ server <- function(input, output, session) {
 
     if(input$manager == "JACKSONVILLE") {
 
-    ytd.location.totals.cost <- cbcs.ltr.df() %>%
-      group_by(occ.year, `Loc Name`) %>%
-      summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
-      mutate(Coverage = paste(occ.year, "Total")) %>%
-      select(occ.year, `Loc Name`, Coverage, Incurred) %>%
-      ungroup()
+      ytd.location.totals.cost <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`) %>%
+        summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
+        mutate(Coverage = paste(occ.year, "Total")) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
+        ungroup()
 
-    year.loc.cost <- cbcs.ltr.df() %>%
-      group_by(occ.year, `Loc Name`, Coverage) %>%
-      summarise(Incurred = sum(Incurred)) %>%
-      ungroup()
+      year.loc.cost <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`, Coverage) %>%
+        summarise(Incurred = sum(Incurred)) %>%
+        ungroup()
 
-    ytd.comp.cost <- rbind(as.data.frame(year.loc.cost), as.data.frame(ytd.location.totals.cost)) %>%
-      ungroup() %>%
-      pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
-      replace(., is.na(.), 0) %>%
-      mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
-      `colnames<-`(c('Location',
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-                     'Fav/Unfav')) %>%
-      select(Location,
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-             `Fav/Unfav`)
+      ytd.comp.cost <- rbind(as.data.frame(year.loc.cost), as.data.frame(ytd.location.totals.cost)) %>%
+        ungroup() %>%
+        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
+        replace(., is.na(.), 0) %>%
+        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
+        `colnames<-`(c('Location',
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+                       'Fav/Unfav')) %>%
+        select(Location,
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+               `Fav/Unfav`)
 
-    cost.totals <- ytd.comp.cost %>%
-      select(-c(Location)) %>%
-      summarise_all(sum, na.rm = TRUE) %>%
-      mutate(Location = "Total") %>%
-      select(Location, everything())
+      cost.totals <- ytd.comp.cost %>%
+        select(-c(Location)) %>%
+        summarise_all(sum, na.rm = TRUE) %>%
+        mutate(Location = "Total") %>%
+        select(Location, everything())
 
-    ytd.comp.cost <- rbind(ytd.comp.cost, cost.totals)
+      ytd.comp.cost <- rbind(ytd.comp.cost, cost.totals)
 
-    ytd.comp.cost.r <- apply(ytd.comp.cost[2:ncol(ytd.comp.cost)], 2, dollar)
+      ytd.comp.cost.r <- apply(ytd.comp.cost[2:ncol(ytd.comp.cost)], 2, dollar)
 
-    ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
+      ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
 
     } else {
 
@@ -576,51 +574,51 @@ server <- function(input, output, session) {
 
     if(input$manager == "JACKSONVILLE") {
 
-    ytd.location.totals.count <- cbcs.ltr.df() %>%
-      group_by(occ.year, `Loc Name`) %>%
-      summarise(Incurred = sum(!is.na(Incurred))) %>%
-      mutate(Coverage = paste(occ.year, "Total")) %>%
-      select(occ.year, `Loc Name`, Coverage, Incurred) %>%
-      ungroup()
+      ytd.location.totals.count <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`) %>%
+        summarise(Incurred = sum(!is.na(Incurred))) %>%
+        mutate(Coverage = paste(occ.year, "Total")) %>%
+        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
+        ungroup()
 
-    year.loc.count <- cbcs.ltr.df() %>%
-      group_by(occ.year, `Loc Name`, Coverage) %>%
-      summarise(Incurred = sum(!is.na(Incurred))) %>%
-      ungroup()
+      year.loc.count <- cbcs.ltr.df() %>%
+        group_by(occ.year, `Loc Name`, Coverage) %>%
+        summarise(Incurred = sum(!is.na(Incurred))) %>%
+        ungroup()
 
-    ytd.comp.count <- rbind(as.data.frame(year.loc.count), as.data.frame(ytd.location.totals.count)) %>%
-      ungroup() %>%
-      pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
-      replace(., is.na(.), 0) %>%
-      mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
-      `colnames<-`(c('Location',
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-                     paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-                     paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-                     'Fav/Unfav')) %>%
-      select(Location,
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-             paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-             paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-             `Fav/Unfav`)
+      ytd.comp.count <- rbind(as.data.frame(year.loc.count), as.data.frame(ytd.location.totals.count)) %>%
+        ungroup() %>%
+        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
+        replace(., is.na(.), 0) %>%
+        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
+        `colnames<-`(c('Location',
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+                       'Fav/Unfav')) %>%
+        select(Location,
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
+               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
+               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
+               `Fav/Unfav`)
 
-    count.totals <- ytd.comp.count %>%
-      select(-c(Location)) %>%
-      summarise_all(sum, na.rm = TRUE) %>%
-      mutate(Location = "Total") %>%
-      select(Location, everything())
+      count.totals <- ytd.comp.count %>%
+        select(-c(Location)) %>%
+        summarise_all(sum, na.rm = TRUE) %>%
+        mutate(Location = "Total") %>%
+        select(Location, everything())
 
-    ytd.comp.count <- rbind(ytd.comp.count, count.totals)
+      ytd.comp.count <- rbind(ytd.comp.count, count.totals)
 
     } else {
 
@@ -680,30 +678,30 @@ server <- function(input, output, session) {
 
     if(input$manager == "JACKSONVILLE") {
 
-    ltr.cost() %>%
-      mutate_if(is.numeric, round, 0) %>%
-      flextable() %>%
-      set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
-      border_remove() %>%
-      border(border.top = fp_border(color = "black"),
-             border.bottom = fp_border(color = "black"),
-             border.left = fp_border(color = "black"),
-             border.right = fp_border(color = "black"), part = "all") %>%
-      align(align = "center", part = "all") %>%
-      align(align = "left", part = "all", j = 1) %>%
-      font(fontname = "arial", part = "all") %>%
-      fontsize(size = 11, part = "all") %>%
-      merge_at(i = 1, j = 2:3, part = "header") %>%
-      merge_at(i = 1, j = 4:5, part = "header") %>%
-      merge_at(i = 1, j = 6:7, part = "header") %>%
-      merge_at(i = 1, j = 8:9, part = "header") %>%
-      bold(bold = TRUE, part = "header") %>%
-      bg(bg = "light blue", part = "header") %>%
-      bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-      bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-      width(width = 1.48, j = 1) %>%
-      width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
-      htmltools_value()
+      ltr.cost() %>%
+        mutate_if(is.numeric, round, 0) %>%
+        flextable() %>%
+        set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
+        border_remove() %>%
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        align(align = "center", part = "all") %>%
+        align(align = "left", part = "all", j = 1) %>%
+        font(fontname = "arial", part = "all") %>%
+        fontsize(size = 11, part = "all") %>%
+        merge_at(i = 1, j = 2:3, part = "header") %>%
+        merge_at(i = 1, j = 4:5, part = "header") %>%
+        merge_at(i = 1, j = 6:7, part = "header") %>%
+        merge_at(i = 1, j = 8:9, part = "header") %>%
+        bold(bold = TRUE, part = "header") %>%
+        bg(bg = "light blue", part = "header") %>%
+        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+        width(width = 1.48, j = 1) %>%
+        width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
+        htmltools_value()
 
     } else {
 
@@ -740,57 +738,57 @@ server <- function(input, output, session) {
 
     if(input$manager == "JACKSONVILLE") {
 
-    ltr.count() %>%
-      flextable() %>%
-      set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
-      border_remove() %>%
-      border(border.top = fp_border(color = "black"),
-             border.bottom = fp_border(color = "black"),
-             border.left = fp_border(color = "black"),
-             border.right = fp_border(color = "black"), part = "all") %>%
-      align(align = "center", part = "all") %>%
-      align(align = "left", part = "all", j = 1) %>%
-      font(fontname = "arial", part = "all") %>%
-      fontsize(size = 11, part = "all") %>%
-      merge_at(i = 1, j = 2:3, part = "header") %>%
-      merge_at(i = 1, j = 4:5, part = "header") %>%
-      merge_at(i = 1, j = 6:7, part = "header") %>%
-      merge_at(i = 1, j = 8:9, part = "header") %>%
-      bold(bold = TRUE, part = "header") %>%
-      bg(bg = "light blue", part = "header") %>%
-      bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-      bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-      width(width = 1.48, j = 1) %>%
-      width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
-      htmltools_value()
+      ltr.count() %>%
+        flextable() %>%
+        set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
+        border_remove() %>%
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        align(align = "center", part = "all") %>%
+        align(align = "left", part = "all", j = 1) %>%
+        font(fontname = "arial", part = "all") %>%
+        fontsize(size = 11, part = "all") %>%
+        merge_at(i = 1, j = 2:3, part = "header") %>%
+        merge_at(i = 1, j = 4:5, part = "header") %>%
+        merge_at(i = 1, j = 6:7, part = "header") %>%
+        merge_at(i = 1, j = 8:9, part = "header") %>%
+        bold(bold = TRUE, part = "header") %>%
+        bg(bg = "light blue", part = "header") %>%
+        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+        width(width = 1.48, j = 1) %>%
+        width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
+        htmltools_value()
 
-  } else {
+    } else {
 
-    ltr.count() %>%
-      flextable() %>%
-      set_header_df(mapping = typology.count, key = "col_keys") %>%
-      border_remove() %>%
-      border(border.top = fp_border(color = "black"),
-             border.bottom = fp_border(color = "black"),
-             border.left = fp_border(color = "black"),
-             border.right = fp_border(color = "black"), part = "all") %>%
-      align(align = "center", part = "all") %>%
-      align(align = "left", part = "all", j = 1) %>%
-      font(fontname = "arial", part = "all") %>%
-      fontsize(size = 11, part = "all") %>%
-      merge_at(i = 1, j = 2:3, part = "header") %>%
-      merge_at(i = 1, j = 4:5, part = "header") %>%
-      merge_at(i = 1, j = 6:7, part = "header") %>%
-      merge_at(i = 1, j = 8:9, part = "header") %>%
-      bold(bold = TRUE, part = "header") %>%
-      bg(bg = "light blue", part = "header") %>%
-      bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-      bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-      width(width = 1.48, j = 1) %>%
-      width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
-      htmltools_value()
+      ltr.count() %>%
+        flextable() %>%
+        set_header_df(mapping = typology.count, key = "col_keys") %>%
+        border_remove() %>%
+        border(border.top = fp_border(color = "black"),
+               border.bottom = fp_border(color = "black"),
+               border.left = fp_border(color = "black"),
+               border.right = fp_border(color = "black"), part = "all") %>%
+        align(align = "center", part = "all") %>%
+        align(align = "left", part = "all", j = 1) %>%
+        font(fontname = "arial", part = "all") %>%
+        fontsize(size = 11, part = "all") %>%
+        merge_at(i = 1, j = 2:3, part = "header") %>%
+        merge_at(i = 1, j = 4:5, part = "header") %>%
+        merge_at(i = 1, j = 6:7, part = "header") %>%
+        merge_at(i = 1, j = 8:9, part = "header") %>%
+        bold(bold = TRUE, part = "header") %>%
+        bg(bg = "light blue", part = "header") %>%
+        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+        width(width = 1.48, j = 1) %>%
+        width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
+        htmltools_value()
 
-  }
+    }
 
   })
 
@@ -799,31 +797,38 @@ server <- function(input, output, session) {
 
     req(input$file3)
 
-    if(input$manager == "FT MYERS - BROWARD"){
+    lms1 <- read_excel("data/COVID_IT_NEW_LMS.xlsx", sheet = "Jan-Jun YTD Completions")
+    lms2 <- read_excel(input$file3$datapath, sheet = "Jul-Dec YTD Completions")
+
+    lms <- rbind(lms1, lms2)
+
+    if(input$manager == "BROWARD"){
 
       if(input$allstate == "YES")
 
-        lms <- read_excel(input$file3$datapath, skip = 1) %>%
-          left_join(lms.locations, "Location") %>%
+        lms <- lms %>%
+          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
           filter(manager != "PLACEHOLDER")
 
       else
 
-        lms <- read_excel(input$file3$datapath, skip = 1) %>%
-          left_join(lms.locations, "Location") %>%
+        lms <- lms %>%
+          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
           filter(manager != "PLACEHOLDER",
-                 manager == "FT MYERS - BROWARD")
+                 manager == "BROWARD")
 
-      lms %>% group_by(location, `Employee Course`, `Course Enrollment Status`) %>%
-        summarise(n = length(`Course Enrollment Status`)) %>%
-        ungroup %>% group_by(location, `Employee Course`) %>%
+     lms %>%
+        select(-c(`Facility Name`)) %>%
+        rename(`Facility Name` = `Facility Name.y`) %>%
+        group_by(`Facility Name`, Course, Status) %>%
+        summarise(n = length(Status)) %>%
+        ungroup %>% group_by(`Facility Name`, Course) %>%
         mutate(percent.compliant = n / sum(n) * 100) %>%
         mutate(percent.compliant = round(percent.compliant, digits = 0),
                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
         select(-c(n)) %>%
-        rename(`Status` = `Course Enrollment Status`,
-               Location = location) %>%
-        pivot_wider(names_from = `Employee Course`, values_from = percent.compliant)
+        rename(`Status` = Status) %>%
+        pivot_wider(names_from = Course, values_from = percent.compliant)
 
     } else {
 
@@ -831,69 +836,71 @@ server <- function(input, output, session) {
 
         if(input$allstate == "YES")
 
-          lms <- read_excel(input$file3$datapath, skip = 1) %>%
-            left_join(lms.locations, "Location") %>%
+          lms <- lms %>%
+            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
             filter(manager != "PLACEHOLDER")
 
         else
 
-          lms <- read_excel(input$file3$datapath, skip = 1) %>%
-            left_join(lms.locations, "Location") %>%
+          lms <- lms %>%
+            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
             filter(manager != "PLACEHOLDER",
                    manager == input$manager)
 
         lms %>%
-          mutate(`Course Enrollment Status` = recode(`Course Enrollment Status`,
-                                                            "Enrolled" = "Incomplete",
-                                                            "In Progress" = "Incomplete"),
-                       comp.binary = recode(`Course Enrollment Status`,
-                                             "Incomplete" = 0,
-                                             "Completed" = 1)) %>%
-          group_by(manager, location, `Employee Course`) %>%
+          select(-c(`Facility Name`)) %>%
+          rename(`Facility Name` = `Facility Name.y`) %>%
+          mutate(Status = recode(Status,
+                                                     "In Progress" = "Incomplete",
+                                                     "Not yet started" = "Incomplete"),
+                 comp.binary = recode(Status,
+                                      "Incomplete" = 0,
+                                      "Completed" = 1)) %>%
+          group_by(manager, `Facility Name`, Course) %>%
           summarise(num.comp = sum(comp.binary),
                     total = length(comp.binary),
                     percent.compliant = num.comp/total * 100) %>%
-          select(location, `Employee Course`, percent.compliant) %>%
+          select(`Facility Name`, Course, percent.compliant) %>%
           mutate(percent.compliant = round(percent.compliant, digits = 0),
                  percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = `Employee Course`, values_from = percent.compliant) %>%
+          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
           ungroup() %>%
-          select(-c(manager)) %>%
-          rename(Location = location)
+          select(-c(manager))
 
       } else {
 
         if(input$allstate == "YES")
 
-          lms <- read_excel(input$file3$datapath, skip = 1) %>%
-            left_join(lms.locations, "Location") %>%
+          lms <- lms %>%
+            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
             filter(manager != "PLACEHOLDER")
 
         else
 
-          lms <- read_excel(input$file3$datapath, skip = 1) %>%
-            left_join(lms.locations, "Location") %>%
+          lms <- lms %>%
+            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
             filter(manager != "PLACEHOLDER",
                    manager == input$manager)
 
         lms %>%
-          mutate(`Course Enrollment Status` = recode(`Course Enrollment Status`,
-                                                           "Enrolled" = "Incomplete",
-                                                           "In Progress" = "Incomplete"),
-                       comp.binary = recode(`Course Enrollment Status`,
-                                            "Incomplete" = 0,
-                                            "Completed" = 1)) %>%
-          group_by(manager, location, `Employee Course`) %>%
+          select(-c(`Facility Name`)) %>%
+          rename(`Facility Name` = `Facility Name.y`) %>%
+          mutate(Status = recode(Status,
+                                 "In Progress" = "Incomplete",
+                                 "Not yet started" = "Incomplete"),
+                 comp.binary = recode(Status,
+                                      "Incomplete" = 0,
+                                      "Completed" = 1)) %>%
+          group_by(manager, `Facility Name`, Course) %>%
           summarise(num.comp = sum(comp.binary),
                     total = length(comp.binary),
                     percent.compliant = num.comp/total * 100) %>%
-          select(location, `Employee Course`, percent.compliant) %>%
+          select(`Facility Name`, Course, percent.compliant) %>%
           mutate(percent.compliant = round(percent.compliant, digits = 0),
                  percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = `Employee Course`, values_from = percent.compliant) %>%
+          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
           ungroup() %>%
-          select(-c(manager)) %>%
-          rename(Location = location)
+          select(-c(manager))
 
       }
 
@@ -1085,30 +1092,30 @@ server <- function(input, output, session) {
 
         if(input$manager == "JACKSONVILLE") {
 
-        flextable_ltr.cost <- ltr.cost() %>%
-          mutate_if(is.numeric, round, 0)
+          flextable_ltr.cost <- ltr.cost() %>%
+            mutate_if(is.numeric, round, 0)
 
-        flextable_ltr.cost <- flextable(flextable_ltr.cost) %>%
-          set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
-          border_remove() %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all") %>%
-          align(align = "center", part = "all") %>%
-          align(align = "left", part = "all", j = 1) %>%
-          font(fontname = "arial", part = "all") %>%
-          fontsize(size = 11, part = "all") %>%
-          merge_at(i = 1, j = 2:3, part = "header") %>%
-          merge_at(i = 1, j = 4:5, part = "header") %>%
-          merge_at(i = 1, j = 6:7, part = "header") %>%
-          merge_at(i = 1, j = 8:9, part = "header") %>%
-          bold(bold = TRUE, part = "header") %>%
-          bg(bg = "light blue", part = "header") %>%
-          bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-          bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-          width(width = 1.48, j = 1) %>%
-          width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset))
+          flextable_ltr.cost <- flextable(flextable_ltr.cost) %>%
+            set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
+            border_remove() %>%
+            border(border.top = fp_border(color = "black"),
+                   border.bottom = fp_border(color = "black"),
+                   border.left = fp_border(color = "black"),
+                   border.right = fp_border(color = "black"), part = "all") %>%
+            align(align = "center", part = "all") %>%
+            align(align = "left", part = "all", j = 1) %>%
+            font(fontname = "arial", part = "all") %>%
+            fontsize(size = 11, part = "all") %>%
+            merge_at(i = 1, j = 2:3, part = "header") %>%
+            merge_at(i = 1, j = 4:5, part = "header") %>%
+            merge_at(i = 1, j = 6:7, part = "header") %>%
+            merge_at(i = 1, j = 8:9, part = "header") %>%
+            bold(bold = TRUE, part = "header") %>%
+            bg(bg = "light blue", part = "header") %>%
+            bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+            bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
+            width(width = 1.48, j = 1) %>%
+            width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset))
 
         } else {
 
@@ -1151,28 +1158,28 @@ server <- function(input, output, session) {
 
         if(input$manager == "JACKSONVILLE") {
 
-        flextable_ltr.count <- ltr.count() %>%
-          flextable() %>%
-          set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
-          border_remove() %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all") %>%
-          align(align = "center", part = "all") %>%
-          align(align = "left", part = "all", j = 1) %>%
-          font(fontname = "arial", part = "all") %>%
-          fontsize(size = 11, part = "all") %>%
-          merge_at(i = 1, j = 2:3, part = "header") %>%
-          merge_at(i = 1, j = 4:5, part = "header") %>%
-          merge_at(i = 1, j = 6:7, part = "header") %>%
-          merge_at(i = 1, j = 8:9, part = "header") %>%
-          bold(bold = TRUE, part = "header") %>%
-          bg(bg = "light blue", part = "header") %>%
-          bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-          bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-          width(width = 1.48, j = 1) %>%
-          width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset))
+          flextable_ltr.count <- ltr.count() %>%
+            flextable() %>%
+            set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
+            border_remove() %>%
+            border(border.top = fp_border(color = "black"),
+                   border.bottom = fp_border(color = "black"),
+                   border.left = fp_border(color = "black"),
+                   border.right = fp_border(color = "black"), part = "all") %>%
+            align(align = "center", part = "all") %>%
+            align(align = "left", part = "all", j = 1) %>%
+            font(fontname = "arial", part = "all") %>%
+            fontsize(size = 11, part = "all") %>%
+            merge_at(i = 1, j = 2:3, part = "header") %>%
+            merge_at(i = 1, j = 4:5, part = "header") %>%
+            merge_at(i = 1, j = 6:7, part = "header") %>%
+            merge_at(i = 1, j = 8:9, part = "header") %>%
+            bold(bold = TRUE, part = "header") %>%
+            bg(bg = "light blue", part = "header") %>%
+            bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+            bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
+            width(width = 1.48, j = 1) %>%
+            width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset))
 
         } else {
 
