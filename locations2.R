@@ -2688,7 +2688,11 @@ stars.locations <- data.frame( Location = c("FT MYERS",
                                             "LAKELAND",
                                             "COCA-COLA BEVERAGES FLORIDA, LLC",
                                             "JACKSONVILLE SURGE",
-                                            "SEBRING"),
+                                            "SEBRING",
+                                            "BROWARD",
+                                            "MIAMI DADE",
+                                            "PALM BEACH",
+                                            "THE KEYS"),
                                manager = c("TAMPA",
                                            "TAMPA",
                                            "ORLANDO",
@@ -2708,7 +2712,11 @@ stars.locations <- data.frame( Location = c("FT MYERS",
                                            "ORLANDO",
                                            "PLACEHOLDER",
                                            "JACKSONVILLE",
-                                           "ORLANDO")
+                                           "ORLANDO",
+                                           "BROWARD",
+                                           "BROWARD",
+                                           "BROWARD",
+                                           "BROWARD")
                                )
 
 stars.locations$Location <- as.character(stars.locations$Location)
@@ -2808,11 +2816,5 @@ cbcs.pivot.cat <- data.frame(year = c((as.numeric(format(Sys.Date(), "%Y")) - 1)
                        Coverage = c("AUTO", "GL", "WC", "AUTO", "GL", "WC"))
 
 
-cbcs.cat.broward <- data.frame(year = c((as.numeric(format(Sys.Date(), "%Y")) - 1), (format(Sys.Date(), "%Y"))),
-                       Coverage = c("GL", "PD", "WC", "GL", "PD", "WC"))
 
-typology.cost.jax <- typology.cost
 
-typology.count.jax <- typology.count
-
-cbcs.pivot.cat.jax <- cbcs.pivot.cat

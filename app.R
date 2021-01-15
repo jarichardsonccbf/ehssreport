@@ -125,10 +125,10 @@ ui <- fluidPage(
                   tabPanel("Training", uiOutput(outputId = "lms.pivot")),
 
                   # Covid training tab
-                  tabPanel("COVID-19 Training", uiOutput(outputId = "lmsC.pivot")),
+                  # tabPanel("COVID-19 Training", uiOutput(outputId = "lmsC.pivot")),
 
                   # IT training tab
-                  tabPanel("IT Training", uiOutput(outputId = "lmsIT.pivot")),
+                  # tabPanel("IT Training", uiOutput(outputId = "lmsIT.pivot")),
 
                   # Incident descriptions tab
                   tabPanel("Weekly Safety Incidents", uiOutput(outputId = "weekly.cbcs.incidents")),
@@ -332,9 +332,9 @@ server <- function(input, output, session) {
     cbcs.state %>%
       rename(Location = `Loc Name`) %>%
       mutate(Coverage = recode(Coverage,
-                               "ALBI"  = "Auto",
-                               "ALPD"  = "Auto",
-                               "ALAPD" = "A",
+                               "ALBI"  = "AUTO",
+                               "ALPD"  = "AUTO",
+                               "ALAPD" = "AUTO",
                                "GLPD"  = "GL"  ,
                                "GLBI"  = "GL") ,
              Incident = paste(format(`Occ Date`, format = "%m/%d/%y"), "-",Coverage, "-",`Acc Desc`)) %>%
@@ -363,53 +363,7 @@ server <- function(input, output, session) {
   cbcs.ltr.df <- reactive({
     req(input$file2)
 
-    if(input$manager == "JACKSONVILLE") {
-
-      df <- read_excel(input$file2$datapath, skip = 6) %>%
-        mutate(Coverage = recode(Coverage,
-                                 "ALBI"  = "GL",
-                                 "ALPD"  = "PD",
-                                 "ALAPD" = "PD",
-                                 "GLPD"  = "PD"  ,
-                                 "GLBI"  = "GL"),
-               occ.year = year(`Occ Date`)) %>%
-        rename(Dept.Name = `Dept Name`) %>%
-        left_join(cbcs.locations, by = "Dept.Name") %>%
-        filter(manager != "PLACEHOLDER")
-
-      cbcs.locations <- df %>%
-        select(`Loc Name`, manager) %>%
-        unique() %>%
-        left_join(cbcs.years, "manager") %>%
-        left_join(cbcs.cat.jax, "year") %>%
-        rename(occ.year = year) %>%
-        mutate(occ.year = as.character(occ.year),
-               occ.year = as.numeric(occ.year))
-
-      prior.year <- df %>%
-        filter(occ.year == as.numeric(format(Sys.Date(), "%Y")) - 1,
-               `Occ Date` <= input$dateRange[2] - 366) %>%
-        select(occ.year, `Loc Name`, Coverage, Incurred)
-
-      present.year <- df %>%
-        filter(occ.year == format(Sys.Date(), "%Y"),
-               `Occ Date` <= input$dateRange[2]) %>%
-        select(occ.year, `Loc Name`, Coverage, Incurred)
-
-      year <- cbcs.locations %>%
-        left_join(prior.year, by = c("Loc Name", "Coverage", "occ.year"))
-
-      year <- year %>%
-        left_join(present.year, by = c("Loc Name", "Coverage", "occ.year")) %>%
-        mutate(Incurred = pmax(Incurred.x, Incurred.y, na.rm = TRUE)) %>%
-        select(-c(Incurred.x, Incurred.y))
-
-      year.loc <- year %>%
-        filter(manager == input$manager)
-
-    } else {
-
-      df <- read_excel(input$file2$datapath, skip = 6) %>%
+    df <- read_excel(input$file2$datapath, skip = 6) %>%
         mutate(Coverage = recode(Coverage,
                                  "ALBI"  = "AUTO",
                                  "ALPD"  = "AUTO",
@@ -457,8 +411,6 @@ server <- function(input, output, session) {
         year.loc <- year %>%
         filter(manager == input$manager)
 
-    }
-
   })
 
 
@@ -466,60 +418,6 @@ server <- function(input, output, session) {
 
   ltr.cost <- reactive({
 
-    if(input$manager == "JACKSONVILLE") {
-
-      ytd.location.totals.cost <- cbcs.ltr.df() %>%
-        group_by(occ.year, `Loc Name`) %>%
-        summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
-        mutate(Coverage = paste(occ.year, "Total")) %>%
-        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
-        ungroup()
-
-      year.loc.cost <- cbcs.ltr.df() %>%
-        group_by(occ.year, `Loc Name`, Coverage) %>%
-        summarise(Incurred = sum(Incurred)) %>%
-        ungroup()
-
-      ytd.comp.cost <- rbind(as.data.frame(year.loc.cost), as.data.frame(ytd.location.totals.cost)) %>%
-        ungroup() %>%
-        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
-        replace(., is.na(.), 0) %>%
-        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
-        `colnames<-`(c('Location',
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-                       'Fav/Unfav')) %>%
-        select(Location,
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-               `Fav/Unfav`)
-
-      cost.totals <- ytd.comp.cost %>%
-        select(-c(Location)) %>%
-        summarise_all(sum, na.rm = TRUE) %>%
-        mutate(Location = "Total") %>%
-        select(Location, everything())
-
-      ytd.comp.cost <- rbind(ytd.comp.cost, cost.totals)
-
-      ytd.comp.cost.r <- apply(ytd.comp.cost[2:ncol(ytd.comp.cost)], 2, dollar)
-
-      ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
-
-    } else {
-
       ytd.location.totals.cost <- cbcs.ltr.df() %>%
         group_by(occ.year, `Loc Name`) %>%
         summarise(Incurred = sum(Incurred, na.rm = TRUE)) %>%
@@ -569,8 +467,6 @@ server <- function(input, output, session) {
       ytd.comp.cost.r <- apply(ytd.comp.cost[2:ncol(ytd.comp.cost)], 2, dollar)
 
       ytd.comp.cost <- cbind(ytd.comp.cost[1], as.data.frame(as.matrix(ytd.comp.cost.r)))
-
-    }
 
   })
 
@@ -578,56 +474,6 @@ server <- function(input, output, session) {
 
   ltr.count <- reactive({
 
-    if(input$manager == "JACKSONVILLE") {
-
-      ytd.location.totals.count <- cbcs.ltr.df() %>%
-        group_by(occ.year, `Loc Name`) %>%
-        summarise(Incurred = sum(!is.na(Incurred))) %>%
-        mutate(Coverage = paste(occ.year, "Total")) %>%
-        select(occ.year, `Loc Name`, Coverage, Incurred) %>%
-        ungroup()
-
-      year.loc.count <- cbcs.ltr.df() %>%
-        group_by(occ.year, `Loc Name`, Coverage) %>%
-        summarise(Incurred = sum(!is.na(Incurred))) %>%
-        ungroup()
-
-      ytd.comp.count <- rbind(as.data.frame(year.loc.count), as.data.frame(ytd.location.totals.count)) %>%
-        ungroup() %>%
-        pivot_wider(names_from = c(Coverage, occ.year), values_from = Incurred) %>%
-        replace(., is.na(.), 0) %>%
-        mutate(`Fav/Unfav` = .[[8]] - .[[9]]) %>%
-        `colnames<-`(c('Location',
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-                       paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-                       paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-                       'Fav/Unfav')) %>%
-        select(Location,
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "GL", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "GL", sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "PD", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "PD", sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "WC", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "WC",  sep = " "),
-               paste(as.numeric(format(Sys.Date(), '%Y')) - 1, "Total", sep = " "),
-               paste(as.numeric(format(Sys.Date(), "%Y")), "Total", sep = " "),
-               `Fav/Unfav`)
-
-      count.totals <- ytd.comp.count %>%
-        select(-c(Location)) %>%
-        summarise_all(sum, na.rm = TRUE) %>%
-        mutate(Location = "Total") %>%
-        select(Location, everything())
-
-      ytd.comp.count <- rbind(ytd.comp.count, count.totals)
-
-    } else {
-
       ytd.location.totals.count <- cbcs.ltr.df() %>%
         group_by(occ.year, `Loc Name`) %>%
         summarise(Incurred = sum(!is.na(Incurred))) %>%
@@ -674,42 +520,11 @@ server <- function(input, output, session) {
 
       ytd.comp.count <- rbind(ytd.comp.count, count.totals)
 
-    }
-
   })
 
   # cbcs ltr outputs ----
 
   output$ytd.cost <- renderUI({
-
-    if(input$manager == "JACKSONVILLE") {
-
-      ltr.cost() %>%
-        mutate_if(is.numeric, round, 0) %>%
-        flextable() %>%
-        set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
-        border_remove() %>%
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>%
-        align(align = "center", part = "all") %>%
-        align(align = "left", part = "all", j = 1) %>%
-        font(fontname = "arial", part = "all") %>%
-        fontsize(size = 11, part = "all") %>%
-        merge_at(i = 1, j = 2:3, part = "header") %>%
-        merge_at(i = 1, j = 4:5, part = "header") %>%
-        merge_at(i = 1, j = 6:7, part = "header") %>%
-        merge_at(i = 1, j = 8:9, part = "header") %>%
-        bold(bold = TRUE, part = "header") %>%
-        bg(bg = "light blue", part = "header") %>%
-        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.cost())$body$dataset)) %>%
-        width(width = 1.48, j = 1) %>%
-        width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
-        htmltools_value()
-
-    } else {
 
       ltr.cost() %>%
         mutate_if(is.numeric, round, 0) %>%
@@ -736,39 +551,9 @@ server <- function(input, output, session) {
         width(width = 1, j = 2:ncol(flextable(ltr.cost())$body$dataset)) %>%
         htmltools_value()
 
-    }
-
   })
 
   output$ytd.count <- renderUI({
-
-    if(input$manager == "JACKSONVILLE") {
-
-      ltr.count() %>%
-        flextable() %>%
-        set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
-        border_remove() %>%
-        border(border.top = fp_border(color = "black"),
-               border.bottom = fp_border(color = "black"),
-               border.left = fp_border(color = "black"),
-               border.right = fp_border(color = "black"), part = "all") %>%
-        align(align = "center", part = "all") %>%
-        align(align = "left", part = "all", j = 1) %>%
-        font(fontname = "arial", part = "all") %>%
-        fontsize(size = 11, part = "all") %>%
-        merge_at(i = 1, j = 2:3, part = "header") %>%
-        merge_at(i = 1, j = 4:5, part = "header") %>%
-        merge_at(i = 1, j = 6:7, part = "header") %>%
-        merge_at(i = 1, j = 8:9, part = "header") %>%
-        bold(bold = TRUE, part = "header") %>%
-        bg(bg = "light blue", part = "header") %>%
-        bg(bg = "light blue", part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-        bold(bold = TRUE, part = "body", i = nrow(flextable(ltr.count())$body$dataset)) %>%
-        width(width = 1.48, j = 1) %>%
-        width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
-        htmltools_value()
-
-    } else {
 
       ltr.count() %>%
         flextable() %>%
@@ -794,8 +579,6 @@ server <- function(input, output, session) {
         width(width = 1, j = 2:ncol(flextable(ltr.count())$body$dataset)) %>%
         htmltools_value()
 
-    }
-
   })
 
   # LMS Pivot ----
@@ -803,10 +586,11 @@ server <- function(input, output, session) {
 
     req(input$file3)
 
-    lms1 <- read_excel("data/COVID_IT_NEW_LMS.xlsx", sheet = "Jan-Jun YTD Completions")
-    lms2 <- read_excel(input$file3$datapath, sheet = "Jul-Dec YTD Completions")
+    lms1 <- read_excel(input$file3$datapath, sheet = "Jan-Jun YTD Completions")
+    # lms2 <- read_excel(input$file3$datapath, sheet = "Jul-Dec YTD Completions")
 
-    lms <- rbind(lms1, lms2)
+    lms <- rbind(lms1)
+    # lms <- rbind(lms1, lms2)
 
     if(input$manager == "BROWARD"){
 
@@ -920,240 +704,240 @@ server <- function(input, output, session) {
   })
 
   # LMS Covid Pivot ----
-  lmsC.pivots.df <- reactive({
-
-    req(input$file3)
-
-    lmsC <- read_excel("data/COVID_IT_NEW_LMS.xlsx", sheet = "COVID-19 YTD Completions")
-
-    if(input$manager == "BROWARD"){
-
-      if(input$allstate == "YES")
-
-        lmsC <- lmsC %>%
-          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-          filter(manager != "PLACEHOLDER")
-
-      else
-
-        lmsC <- lmsC %>%
-          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-          filter(manager != "PLACEHOLDER",
-                 manager == "BROWARD")
-
-      lmsC %>%
-      select(-c(`Facility Name`)) %>%
-        rename(`Facility Name` = `Facility Name.y`) %>%
-        group_by(`Facility Name`, Course, Status) %>%
-        summarise(n = length(Status)) %>%
-        ungroup %>% group_by(`Facility Name`, Course) %>%
-        mutate(percent.compliant = n / sum(n) * 100) %>%
-        mutate(percent.compliant = round(percent.compliant, digits = 0),
-               percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-        select(-c(n)) %>%
-        rename(`Status` = Status) %>%
-        pivot_wider(names_from = Course, values_from = percent.compliant)
-
-    } else {
-
-      if(input$manager == "TAMPA"){
-
-        if(input$allstate == "YES")
-
-          lmsC <- lmsC %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER")
-
-        else
-
-          lmsC <- lmsC %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER",
-                   manager == input$manager)
-
-        lmsC %>%
-          select(-c(`Facility Name`)) %>%
-          rename(`Facility Name` = `Facility Name.y`) %>%
-          mutate(Status = recode(Status,
-                                 "In Progress" = "Incomplete",
-                                 "Not yet started" = "Incomplete"),
-                 comp.binary = recode(Status,
-                                      "Incomplete" = 0,
-                                      "Completed" = 1)) %>%
-          group_by(manager, `Facility Name`, Course) %>%
-          summarise(num.comp = sum(comp.binary),
-                    total = length(comp.binary),
-                    percent.compliant = num.comp/total * 100) %>%
-          select(`Facility Name`, Course, percent.compliant) %>%
-          mutate(percent.compliant = round(percent.compliant, digits = 0),
-                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
-          ungroup() %>%
-          select(-c(manager))
-
-      } else {
-
-        if(input$allstate == "YES")
-
-          lmsC <- lmsC %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER")
-
-        else
-
-          lmsC <- lmsC %>%
-          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER",
-                   manager == input$manager)
-
-        lmsC %>%
-          select(-c(`Facility Name`)) %>%
-          rename(`Facility Name` = `Facility Name.y`) %>%
-          mutate(Status = recode(Status,
-                                 "In Progress" = "Incomplete",
-                                 "Not yet started" = "Incomplete"),
-                 comp.binary = recode(Status,
-                                      "Incomplete" = 0,
-                                      "Completed" = 1)) %>%
-          group_by(manager, `Facility Name`, Course) %>%
-          summarise(num.comp = sum(comp.binary),
-                    total = length(comp.binary),
-                    percent.compliant = num.comp/total * 100) %>%
-          select(`Facility Name`, Course, percent.compliant) %>%
-          mutate(percent.compliant = round(percent.compliant, digits = 0),
-                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
-          ungroup() %>%
-          select(-c(manager))
-
-      }
-
-    }
-
-
-  })
-
-  output$lmsC.pivot <- renderTable({
-    lmsC.pivots.df()
-  })
+  # lmsC.pivots.df <- reactive({
+  #
+  #   req(input$file3)
+  #
+  #   lmsC <- read_excel(input$file3$datapath, sheet = "COVID-19 YTD Completions")
+  #
+  #   if(input$manager == "BROWARD"){
+  #
+  #     if(input$allstate == "YES")
+  #
+  #       lmsC <- lmsC %>%
+  #         left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #         filter(manager != "PLACEHOLDER")
+  #
+  #     else
+  #
+  #       lmsC <- lmsC %>%
+  #         left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #         filter(manager != "PLACEHOLDER",
+  #                manager == "BROWARD")
+  #
+  #     lmsC %>%
+  #     select(-c(`Facility Name`)) %>%
+  #       rename(`Facility Name` = `Facility Name.y`) %>%
+  #       group_by(`Facility Name`, Course, Status) %>%
+  #       summarise(n = length(Status)) %>%
+  #       ungroup %>% group_by(`Facility Name`, Course) %>%
+  #       mutate(percent.compliant = n / sum(n) * 100) %>%
+  #       mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #              percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #       select(-c(n)) %>%
+  #       rename(`Status` = Status) %>%
+  #       pivot_wider(names_from = Course, values_from = percent.compliant)
+  #
+  #   } else {
+  #
+  #     if(input$manager == "TAMPA"){
+  #
+  #       if(input$allstate == "YES")
+  #
+  #         lmsC <- lmsC %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER")
+  #
+  #       else
+  #
+  #         lmsC <- lmsC %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER",
+  #                  manager == input$manager)
+  #
+  #       lmsC %>%
+  #         select(-c(`Facility Name`)) %>%
+  #         rename(`Facility Name` = `Facility Name.y`) %>%
+  #         mutate(Status = recode(Status,
+  #                                "In Progress" = "Incomplete",
+  #                                "Not yet started" = "Incomplete"),
+  #                comp.binary = recode(Status,
+  #                                     "Incomplete" = 0,
+  #                                     "Completed" = 1)) %>%
+  #         group_by(manager, `Facility Name`, Course) %>%
+  #         summarise(num.comp = sum(comp.binary),
+  #                   total = length(comp.binary),
+  #                   percent.compliant = num.comp/total * 100) %>%
+  #         select(`Facility Name`, Course, percent.compliant) %>%
+  #         mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #         pivot_wider(names_from = Course, values_from = percent.compliant) %>%
+  #         ungroup() %>%
+  #         select(-c(manager))
+  #
+  #     } else {
+  #
+  #       if(input$allstate == "YES")
+  #
+  #         lmsC <- lmsC %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER")
+  #
+  #       else
+  #
+  #         lmsC <- lmsC %>%
+  #         left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER",
+  #                  manager == input$manager)
+  #
+  #       lmsC %>%
+  #         select(-c(`Facility Name`)) %>%
+  #         rename(`Facility Name` = `Facility Name.y`) %>%
+  #         mutate(Status = recode(Status,
+  #                                "In Progress" = "Incomplete",
+  #                                "Not yet started" = "Incomplete"),
+  #                comp.binary = recode(Status,
+  #                                     "Incomplete" = 0,
+  #                                     "Completed" = 1)) %>%
+  #         group_by(manager, `Facility Name`, Course) %>%
+  #         summarise(num.comp = sum(comp.binary),
+  #                   total = length(comp.binary),
+  #                   percent.compliant = num.comp/total * 100) %>%
+  #         select(`Facility Name`, Course, percent.compliant) %>%
+  #         mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #         pivot_wider(names_from = Course, values_from = percent.compliant) %>%
+  #         ungroup() %>%
+  #         select(-c(manager))
+  #
+  #     }
+  #
+  #   }
+  #
+  #
+  # })
+  #
+  # output$lmsC.pivot <- renderTable({
+  #   lmsC.pivots.df()
+  # })
 
   # LMS IT Pivot ----
-  lmsIT.pivots.df <- reactive({
-
-    req(input$file3)
-
-    lmsIT <- read_excel("data/COVID_IT_NEW_LMS.xlsx", sheet = "IT YTD Completions")
-
-    if(input$manager == "BROWARD"){
-
-      if(input$allstate == "YES")
-
-        lmsIT <- lmsIT %>%
-          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-          filter(manager != "PLACEHOLDER")
-
-      else
-
-        lmsIT <- lmsIT %>%
-          left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-          filter(manager != "PLACEHOLDER",
-                 manager == "BROWARD")
-
-      lmsIT %>%
-        select(-c(`Facility Name`)) %>%
-        rename(`Facility Name` = `Facility Name.y`) %>%
-        group_by(`Facility Name`, Course, Status) %>%
-        summarise(n = length(Status)) %>%
-        ungroup %>% group_by(`Facility Name`, Course) %>%
-        mutate(percent.compliant = n / sum(n) * 100) %>%
-        mutate(percent.compliant = round(percent.compliant, digits = 0),
-               percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-        select(-c(n)) %>%
-        rename(`Status` = Status) %>%
-        pivot_wider(names_from = Course, values_from = percent.compliant)
-
-    } else {
-
-      if(input$manager == "TAMPA"){
-
-        if(input$allstate == "YES")
-
-          lmsIT <- lmsIT %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER")
-
-        else
-
-          lmsIT <- lmsIT %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER",
-                   manager == input$manager)
-
-        lmsIT %>%
-          select(-c(`Facility Name`)) %>%
-          rename(`Facility Name` = `Facility Name.y`) %>%
-          mutate(Status = recode(Status,
-                                 "In Progress" = "Incomplete",
-                                 "Not yet started" = "Incomplete"),
-                 comp.binary = recode(Status,
-                                      "Incomplete" = 0,
-                                      "Completed" = 1)) %>%
-          group_by(manager, `Facility Name`, Course) %>%
-          summarise(num.comp = sum(comp.binary),
-                    total = length(comp.binary),
-                    percent.compliant = num.comp/total * 100) %>%
-          select(`Facility Name`, Course, percent.compliant) %>%
-          mutate(percent.compliant = round(percent.compliant, digits = 0),
-                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
-          ungroup() %>%
-          select(-c(manager))
-
-      } else {
-
-        if(input$allstate == "YES")
-
-          lmsIT <- lmsIT %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER")
-
-        else
-
-          lmsIT <- lmsIT %>%
-            left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
-            filter(manager != "PLACEHOLDER",
-                   manager == input$manager)
-
-        lmsIT %>%
-          select(-c(`Facility Name`)) %>%
-          rename(`Facility Name` = `Facility Name.y`) %>%
-          mutate(Status = recode(Status,
-                                 "In Progress" = "Incomplete",
-                                 "Not yet started" = "Incomplete"),
-                 comp.binary = recode(Status,
-                                      "Incomplete" = 0,
-                                      "Completed" = 1)) %>%
-          group_by(manager, `Facility Name`, Course) %>%
-          summarise(num.comp = sum(comp.binary),
-                    total = length(comp.binary),
-                    percent.compliant = num.comp/total * 100) %>%
-          select(`Facility Name`, Course, percent.compliant) %>%
-          mutate(percent.compliant = round(percent.compliant, digits = 0),
-                 percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
-          pivot_wider(names_from = Course, values_from = percent.compliant) %>%
-          ungroup() %>%
-          select(-c(manager))
-
-      }
-
-    }
-
-
-  })
-
-  output$lmsIT.pivot <- renderTable({
-    lmsIT.pivots.df()
-  })
+  # lmsIT.pivots.df <- reactive({
+  #
+  #   req(input$file3)
+  #
+  #   lmsIT <- read_excel(input$file3$datapath, sheet = "IT-Legal YTD Completions")
+  #
+  #   if(input$manager == "BROWARD"){
+  #
+  #     if(input$allstate == "YES")
+  #
+  #       lmsIT <- lmsIT %>%
+  #         left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #         filter(manager != "PLACEHOLDER")
+  #
+  #     else
+  #
+  #       lmsIT <- lmsIT %>%
+  #         left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #         filter(manager != "PLACEHOLDER",
+  #                manager == "BROWARD")
+  #
+  #     lmsIT %>%
+  #       select(-c(`Facility Name`)) %>%
+  #       rename(`Facility Name` = `Facility Name.y`) %>%
+  #       group_by(`Facility Name`, Course, Status) %>%
+  #       summarise(n = length(Status)) %>%
+  #       ungroup %>% group_by(`Facility Name`, Course) %>%
+  #       mutate(percent.compliant = n / sum(n) * 100) %>%
+  #       mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #              percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #       select(-c(n)) %>%
+  #       rename(`Status` = Status) %>%
+  #       pivot_wider(names_from = Course, values_from = percent.compliant)
+  #
+  #   } else {
+  #
+  #     if(input$manager == "TAMPA"){
+  #
+  #       if(input$allstate == "YES")
+  #
+  #         lmsIT <- lmsIT %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER")
+  #
+  #       else
+  #
+  #         lmsIT <- lmsIT %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER",
+  #                  manager == input$manager)
+  #
+  #       lmsIT %>%
+  #         select(-c(`Facility Name`)) %>%
+  #         rename(`Facility Name` = `Facility Name.y`) %>%
+  #         mutate(Status = recode(Status,
+  #                                "In Progress" = "Incomplete",
+  #                                "Not yet started" = "Incomplete"),
+  #                comp.binary = recode(Status,
+  #                                     "Incomplete" = 0,
+  #                                     "Completed" = 1)) %>%
+  #         group_by(manager, `Facility Name`, Course) %>%
+  #         summarise(num.comp = sum(comp.binary),
+  #                   total = length(comp.binary),
+  #                   percent.compliant = num.comp/total * 100) %>%
+  #         select(`Facility Name`, Course, percent.compliant) %>%
+  #         mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #         pivot_wider(names_from = Course, values_from = percent.compliant) %>%
+  #         ungroup() %>%
+  #         select(-c(manager))
+  #
+  #     } else {
+  #
+  #       if(input$allstate == "YES")
+  #
+  #         lmsIT <- lmsIT %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER")
+  #
+  #       else
+  #
+  #         lmsIT <- lmsIT %>%
+  #           left_join(lms.locations, by = c("Facility Name" = "Facility.Name.Link")) %>%
+  #           filter(manager != "PLACEHOLDER",
+  #                  manager == input$manager)
+  #
+  #       lmsIT %>%
+  #         select(-c(`Facility Name`)) %>%
+  #         rename(`Facility Name` = `Facility Name.y`) %>%
+  #         mutate(Status = recode(Status,
+  #                                "In Progress" = "Incomplete",
+  #                                "Not yet started" = "Incomplete"),
+  #                comp.binary = recode(Status,
+  #                                     "Incomplete" = 0,
+  #                                     "Completed" = 1)) %>%
+  #         group_by(manager, `Facility Name`, Course) %>%
+  #         summarise(num.comp = sum(comp.binary),
+  #                   total = length(comp.binary),
+  #                   percent.compliant = num.comp/total * 100) %>%
+  #         select(`Facility Name`, Course, percent.compliant) %>%
+  #         mutate(percent.compliant = round(percent.compliant, digits = 0),
+  #                percent.compliant = paste(percent.compliant, "%", sep = "")) %>%
+  #         pivot_wider(names_from = Course, values_from = percent.compliant) %>%
+  #         ungroup() %>%
+  #         select(-c(manager))
+  #
+  #     }
+  #
+  #   }
+  #
+  #
+  # })
+  #
+  # output$lmsIT.pivot <- renderTable({
+  #   lmsIT.pivots.df()
+  # })
 
   # STARS Pivot ----
 
@@ -1338,7 +1122,7 @@ server <- function(input, output, session) {
             mutate_if(is.numeric, round, 0)
 
           flextable_ltr.cost <- flextable(flextable_ltr.cost) %>%
-            set_header_df(mapping = typology.cost.jax, key = "col_keys") %>%
+            set_header_df(mapping = typology.cost, key = "col_keys") %>%
             border_remove() %>%
             border(border.top = fp_border(color = "black"),
                    border.bottom = fp_border(color = "black"),
@@ -1402,7 +1186,7 @@ server <- function(input, output, session) {
 
           flextable_ltr.count <- ltr.count() %>%
             flextable() %>%
-            set_header_df(mapping = typology.count.jax, key = "col_keys") %>%
+            set_header_df(mapping = typology.count, key = "col_keys") %>%
             border_remove() %>%
             border(border.top = fp_border(color = "black"),
                    border.bottom = fp_border(color = "black"),
@@ -1479,56 +1263,56 @@ server <- function(input, output, session) {
       }
 
       # lmsC flex ----
-      if (is.null(input$file3)) {
-
-        NULL
-
-      } else {
-
-        flextable_lmsC <- flextable(lmsC.pivots.df()) %>%
-          border_remove() %>%
-          rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lmsC.pivots.df())$col_keys)) %>%
-          align(j = 1, part = "header") %>%
-          align(j = 1, align = "left") %>%
-          align(align = "center", part = "header") %>%
-          add_header_lines(values = paste("EHSS COVID-19 Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>%
-          height(part = "header", height = 2.28) %>%
-          width(width = 1.7, j = 1) %>%
-          width(width = 0.71, j = 2:length(flextable(lmsC.pivots.df())$col_keys)) %>%
-          bg(bg = "light blue", part = "header") %>%
-          height(height = 0.3, part = "header", i = 1) %>%
-          bold(bold = TRUE, part = "header") %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all")
-      }
+      # if (is.null(input$file3)) {
+      #
+      #   NULL
+      #
+      # } else {
+      #
+      #   flextable_lmsC <- flextable(lmsC.pivots.df()) %>%
+      #     border_remove() %>%
+      #     rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lmsC.pivots.df())$col_keys)) %>%
+      #     align(j = 1, part = "header") %>%
+      #     align(j = 1, align = "left") %>%
+      #     align(align = "center", part = "header") %>%
+      #     add_header_lines(values = paste("EHSS COVID-19 Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>%
+      #     height(part = "header", height = 2.28) %>%
+      #     width(width = 1.7, j = 1) %>%
+      #     width(width = 0.71, j = 2:length(flextable(lmsC.pivots.df())$col_keys)) %>%
+      #     bg(bg = "light blue", part = "header") %>%
+      #     height(height = 0.3, part = "header", i = 1) %>%
+      #     bold(bold = TRUE, part = "header") %>%
+      #     border(border.top = fp_border(color = "black"),
+      #            border.bottom = fp_border(color = "black"),
+      #            border.left = fp_border(color = "black"),
+      #            border.right = fp_border(color = "black"), part = "all")
+      # }
 
       # lmsIT flex ----
-      if (is.null(input$file3)) {
-
-        NULL
-
-      } else {
-
-        flextable_lmsIT <- flextable(lmsIT.pivots.df()) %>%
-          border_remove() %>%
-          rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lmsIT.pivots.df())$col_keys)) %>%
-          align(j = 1, part = "header") %>%
-          align(j = 1, align = "left") %>%
-          align(align = "center", part = "header") %>%
-          add_header_lines(values = paste("IT Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>%
-          height(part = "header", height = 2.28) %>%
-          width(width = 1.7, j = 1) %>%
-          width(width = 0.71, j = 2:length(flextable(lmsIT.pivots.df())$col_keys)) %>%
-          bg(bg = "light blue", part = "header") %>%
-          height(height = 0.3, part = "header", i = 1) %>%
-          bold(bold = TRUE, part = "header") %>%
-          border(border.top = fp_border(color = "black"),
-                 border.bottom = fp_border(color = "black"),
-                 border.left = fp_border(color = "black"),
-                 border.right = fp_border(color = "black"), part = "all")
-      }
+      # if (is.null(input$file3)) {
+      #
+      #   NULL
+      #
+      # } else {
+      #
+      #   flextable_lmsIT <- flextable(lmsIT.pivots.df()) %>%
+      #     border_remove() %>%
+      #     rotate(rotation = "btlr", align = "center", part = "header", j = 2:length(flextable(lmsIT.pivots.df())$col_keys)) %>%
+      #     align(j = 1, part = "header") %>%
+      #     align(j = 1, align = "left") %>%
+      #     align(align = "center", part = "header") %>%
+      #     add_header_lines(values = paste("IT Compliance Training ", months(Sys.Date() - months(1)), "-", months(Sys.Date())), top = TRUE) %>%
+      #     height(part = "header", height = 2.28) %>%
+      #     width(width = 1.7, j = 1) %>%
+      #     width(width = 0.71, j = 2:length(flextable(lmsIT.pivots.df())$col_keys)) %>%
+      #     bg(bg = "light blue", part = "header") %>%
+      #     height(height = 0.3, part = "header", i = 1) %>%
+      #     bold(bold = TRUE, part = "header") %>%
+      #     border(border.top = fp_border(color = "black"),
+      #            border.bottom = fp_border(color = "black"),
+      #            border.left = fp_border(color = "black"),
+      #            border.right = fp_border(color = "black"), part = "all")
+      # }
 
       # stars flex ----
       if (is.null(input$file4)) {
